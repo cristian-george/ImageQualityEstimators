@@ -1,0 +1,43 @@
+{
+  "model_info": {
+    "name": "resnet50",
+    "image_original_size": [512, 384],
+    "model_input_shape": [224, 224],
+    "batch_size": 16,
+    "epoch_size": 45,
+    "crop_image": false
+  },
+  "learn_info" : {
+    "loss" : "huber",
+    "custom_scheduler": {
+      "epoch_decays" : [25, 30, 35, 40],
+      "learning_rates": [1e-4, 9.5e-5, 9e-5]
+    }
+  },
+  "train_info": {
+    "data_directory": "data/KonIQ-10K/",
+    "train_directory": "train/all_classes",
+    "val_directory": "val/all_classes",
+    "train_lb": "train_labels.csv",
+    "val_lb": "val_labels.csv",
+    "callbacks" : {
+      "tensorboard_checkpoint" : {
+        "log_dir": "../logs",
+        "histogram_freq": 1
+      },
+      "best_model_checkpoint": {
+        "ckpt_dir": "../trained_models/resnet50_01",
+        "monitor" : "val_plcc",
+        "mode": "max",
+        "save_best_only": true,
+        "save_weights_only": true
+      }
+    }
+  },
+  "evaluate_info": {
+    "data_directory": "data/KonIQ-10K/",
+    "weights_path": "../trained_models/resnet50_finetune_huber_crop384x256/best_model.h5",
+    "test_directory": "test/all_classes",
+    "test_lb": "test_labels.csv"
+  }
+}
