@@ -3,14 +3,14 @@ import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from models.resnet50.model_class import ResNet50IQA
+from model.model_class import IQA
 from util.gpu_utils import check_gpu_support, limit_gpu_memory, increase_cpu_num_threads
 
 
 def predict_scores_for_images(weights_path, image_dir, image_names):
-    trainer = ResNet50IQA()
+    trainer = IQA()
     trainer.model.load_weights(weights_path)
-    trainer.compile_model(0)
+    trainer.compile_model()
 
     predicted_scores = []
     for image_name in image_names:
@@ -42,13 +42,13 @@ if __name__ == "__main__":
     predicted_scores = np.array(predicted_scores)
 
     # Calculate absolute error for each image
-    errors = predicted_scores - true_scores
+    absolute_errors = np.abs(predicted_scores - true_scores)
 
     # Plot the results
-    plt.scatter(true_scores, errors)
+    plt.scatter(true_scores, absolute_errors)
     plt.xlabel('True Scores')
-    plt.ylabel('Error')
-    plt.title('Difference (pred - true) vs. True Scores')
+    plt.ylabel('Absolute Error')
+    plt.title('Absolute Error vs. True Scores')
     plt.show()
 
     # Print some example predicted and true scores along with absolute errors
@@ -57,4 +57,4 @@ if __name__ == "__main__":
             f"Image Name: {image_names[i]}, "
             f"Predicted Score: {predicted_scores[i]}, "
             f"True Score: {true_scores[i]}, "
-            f"Error: {errors[i]}")
+            f"Absolute Error: {absolute_errors[i]}")
