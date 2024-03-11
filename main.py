@@ -11,8 +11,6 @@ if __name__ == "__main__":
     else:
         increase_cpu_num_threads(num_threads=os.cpu_count())
 
-    config_parser = ConfigParser('model_config/config.json')
-
     while True:
         print("Options: ")
         print("1 for training a model")
@@ -22,6 +20,8 @@ if __name__ == "__main__":
         option = int(input("Enter option: "))
         if option == 0:
             break
+
+        config_parser = ConfigParser('model_config/config.json')
 
         model = IQA(config_parser.get_model_info(),
                     config_parser.get_learn_info(),

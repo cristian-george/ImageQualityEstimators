@@ -6,25 +6,13 @@ from keras.applications import ResNet50
 from keras.models import Model
 from keras.layers import Dense, Dropout, GlobalAveragePooling2D
 from keras.optimizers import Adam
-from keras.callbacks import ModelCheckpoint, TensorBoard
+from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.preprocessing.image import ImageDataGenerator
 from keras_preprocessing import image
 
-from model.metrics import srcc, plcc, rmse, emd
+from model.metrics import srcc, plcc, rmse
 from model.scheduler import LRSchedule
 from util.random_crop import crop_generator
-
-
-def build_model(base_model):
-    x = GlobalAveragePooling2D()(base_model.output)
-    x = Dense(2048, activation='relu')(x)
-    x = Dropout(0.25)(x)
-    x = Dense(1024, activation='relu')(x)
-    x = Dropout(0.25)(x)
-    x = Dense(256, activation='relu')(x)
-    x = Dropout(0.5)(x)
-    output = Dense(1, activation='linear')(x)
-    return Model(inputs=base_model.input, outputs=output)
 
 
 class IQA:
@@ -59,25 +47,39 @@ class IQA:
                                    include_top=False,
                                    input_shape=(self.model_input_shape[0], self.model_input_shape[1], 3))
 
-        self.model = build_model(base_model)
+        dense = self.model_info.get('dense', [])
+        dropout = self.model_info.get('dropout', [])
+
+        x = GlobalAveragePooling2D()(base_model.output)
+        x = Dense(dense[0], activation='relu')(x)
+        x = Dropout(dropout[0])(x)
+        x = Dense(dense[1], activation='relu')(x)
+        x = Dropout(dropout[1])(x)
+        x = Dense(dense[2], activation='relu')(x)
+        x = Dropout(dropout[2])(x)
+        output = Dense(1, activation='linear')(x)
+        self.model = Model(inputs=base_model.input, outputs=output)
 
     def load_weights(self, weights_path):
         self.model.load_weights(weights_path)
 
     def compile_model(self, total_batches=0):
-        custom_scheduler = self.learn_info.get('custom_scheduler', {})
-        decay_epochs = custom_scheduler.get('epoch_decays', [])
-        learning_rates = custom_scheduler.get('learning_rates', [])
+        lr = self.learn_info.get('lr')
+        if lr:
+            learning_rate = lr
+        else:
+            custom_scheduler = self.learn_info.get('custom_scheduler', {})
+            decay_epochs = custom_scheduler.get('epoch_decays', [])
+            learning_rates = custom_scheduler.get('learning_rates', [])
 
-        lr_schedule = LRSchedule(
-            decay_epochs=decay_epochs,
-            learning_rates=learning_rates,
-            total_epochs=self.epoch_size,
-            total_batches=total_batches)
+            learning_rate = LRSchedule(decay_epochs=decay_epochs,
+                                       learning_rates=learning_rates,
+                                       total_epochs=self.epoch_size,
+                                       total_batches=total_batches)
 
-        self.model.compile(optimizer=Adam(learning_rate=lr_schedule),
-                           loss=tf.keras.losses.Huber(),
-                           metrics=[srcc, plcc, rmse, 'mae', emd])
+        self.model.compile(optimizer=Adam(learning_rate=learning_rate),
+                           loss=tf.keras.losses.Huber(delta=1. / 9),
+                           metrics=[srcc, plcc, rmse, 'mae'])
 
     def __callbacks(self):
         callbacks_info = self.train_info.get('callbacks', {})
@@ -88,7 +90,7 @@ class IQA:
         tensorboard_callback = TensorBoard(log_dir=log_dir,
                                            histogram_freq=histogram_freq)
 
-        best_model_checkpoint = callbacks_info.get('best_model_checkpoint', {})
+        best_model_checkpoint = callbacks_info.get('best_checkpoint', {})
         ckpt_dir = best_model_checkpoint.get('ckpt_dir', '')
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir)
@@ -104,7 +106,10 @@ class IQA:
                                               save_best_only=save_best_only,
                                               save_weights_only=save_weights_only)
 
-        return [tensorboard_callback, best_model_callback]
+        early_stopping_callback = EarlyStopping(monitor=monitor,
+                                               mode=mode,
+                                               patience=10)
+        return [tensorboard_callback, best_model_callback, early_stopping_callback]
 
     def train_model(self):
         data_directory = self.train_info.get('data_directory', '')
@@ -114,9 +119,10 @@ class IQA:
         val_labels_file = data_directory + self.train_info.get('val_lb', '')
 
         train_datagen = ImageDataGenerator(rescale=1. / 255,
-                                           horizontal_flip=True,
-                                           rotation_range=15,
-                                           fill_mode='reflect')
+                                           # horizontal_flip=True,
+                                           # rotation_range=15,
+                                           # fill_mode='reflect'
+                                           )
         val_datagen = ImageDataGenerator(rescale=1. / 255)
 
         train_df = pd.read_csv(train_labels_file)
@@ -139,18 +145,26 @@ class IQA:
             crop_train = crop_generator(train_generator, self.model_input_shape)
             crop_valid = crop_generator(valid_generator, self.model_input_shape)
 
-        train_steps_per_epoch = train_generator.samples // self.batch_size
-        self.compile_model(train_steps_per_epoch)
+        weights_path = self.train_info.get('continue_train', '')
+        initial_epoch = self.train_info.get('initial_epoch')
+
+        if weights_path and initial_epoch:
+            self.load_weights(weights_path)
+
+        steps_per_epoch = train_generator.samples // self.batch_size
+        self.compile_model(steps_per_epoch)
+
         self.model.fit(
             crop_train if self.crop_image else train_generator,
-            steps_per_epoch=train_steps_per_epoch,
-            epochs=self.epoch_size,
+            steps_per_epoch=steps_per_epoch,
+            epochs=self.epoch_size + initial_epoch,
+            initial_epoch=initial_epoch,
             validation_data=crop_valid if self.crop_image else valid_generator,
             validation_steps=valid_generator.samples // self.batch_size,
             callbacks=self.__callbacks())
 
     def evaluate_model(self):
-        data_directory = self.train_info.get('data_directory', '')
+        data_directory = self.evaluate_info.get('data_directory', '')
         test_dir = data_directory + self.evaluate_info.get('test_directory', '')
         test_labels_file = data_directory + self.evaluate_info.get('test_lb', '')
 
@@ -176,7 +190,7 @@ class IQA:
         val_loss = self.model.evaluate(
             crop_test if self.crop_image else test_generator,
             steps=test_generator.samples // self.batch_size)
-        print(f'Values (huber, srcc, plcc, rmse, mae, emd): {val_loss}')
+        print(f'Values (huber, srcc, plcc, rmse, mae): {val_loss}')
 
     def predict_score_for_image(self, image_path):
         img = image.load_img(image_path, target_size=self.model_input_shape)

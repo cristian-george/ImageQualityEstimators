@@ -12,7 +12,7 @@ class ConfigParser:
             return json.load(file)
 
     def save_config_json(self):
-        ckpt_dir = self.data.get('train_info', {}).get('callbacks', {}).get('best_model_checkpoint', {}).get('ckpt_dir', '')
+        ckpt_dir = self.data.get('train_info', {}).get('callbacks', {}).get('best_checkpoint', {}).get('ckpt_dir', '')
         if ckpt_dir:
             if not os.path.exists(ckpt_dir):
                 os.makedirs(ckpt_dir)
