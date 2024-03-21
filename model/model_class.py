@@ -4,13 +4,14 @@ import tensorflow as tf
 from keras.applications import VGG16
 from keras.applications import ResNet50
 from keras.models import Model
-from keras.layers import Dense, Dropout, GlobalAveragePooling2D
+from keras.layers import Dense, Dropout, GlobalAveragePooling2D, BatchNormalization
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.preprocessing.image import ImageDataGenerator
 from keras_preprocessing import image
+from keras.applications.resnet import preprocess_input
 
-from model.metrics import srcc, plcc, rmse
+from model.metrics import plcc_tf, rmse_tf, srcc_tf
 from model.scheduler import LRSchedule
 from util.random_crop import crop_generator
 
@@ -47,18 +48,29 @@ class IQA:
                                    include_top=False,
                                    input_shape=(self.model_input_shape[0], self.model_input_shape[1], 3))
 
+        freeze = self.model_info.get('freeze')
+        if freeze:
+            for layer in base_model.layers[-2]:
+                layer.trainable = False
+
         dense = self.model_info.get('dense', [])
         dropout = self.model_info.get('dropout', [])
 
-        x = GlobalAveragePooling2D()(base_model.output)
-        x = Dense(dense[0], activation='relu')(x)
-        x = Dropout(dropout[0])(x)
-        x = Dense(dense[1], activation='relu')(x)
-        x = Dropout(dropout[1])(x)
-        x = Dense(dense[2], activation='relu')(x)
-        x = Dropout(dropout[2])(x)
-        output = Dense(1, activation='linear')(x)
-        self.model = Model(inputs=base_model.input, outputs=output)
+        features = base_model.layers[-2].output
+        x = GlobalAveragePooling2D()(features)
+        for i in range(3):
+            x = Dense(dense[i],
+                      activation='relu',
+                      kernel_initializer='he_normal')(x)
+            # x = BatchNormalization()(x)
+            x = Dropout(dropout[i])(x)
+
+        mos_output = Dense(dense[3],
+                           activation='linear',
+                           kernel_initializer='he_normal')(x)
+
+        self.model = Model(inputs=base_model.input,
+                           outputs=mos_output)
 
     def load_weights(self, weights_path):
         self.model.load_weights(weights_path)
@@ -74,12 +86,12 @@ class IQA:
 
             learning_rate = LRSchedule(decay_epochs=decay_epochs,
                                        learning_rates=learning_rates,
-                                       total_epochs=self.epoch_size,
-                                       total_batches=total_batches)
+                                       total_batches=total_batches,
+                                       total_epochs=self.epoch_size)
 
         self.model.compile(optimizer=Adam(learning_rate=learning_rate),
-                           loss=tf.keras.losses.Huber(delta=1. / 9),
-                           metrics=[srcc, plcc, rmse, 'mae'])
+                           loss='mse',
+                           metrics=['mae', rmse_tf, plcc_tf, srcc_tf])
 
     def __callbacks(self):
         callbacks_info = self.train_info.get('callbacks', {})
@@ -107,8 +119,9 @@ class IQA:
                                               save_weights_only=save_weights_only)
 
         early_stopping_callback = EarlyStopping(monitor=monitor,
-                                               mode=mode,
-                                               patience=10)
+                                                mode=mode,
+                                                patience=20)
+
         return [tensorboard_callback, best_model_callback, early_stopping_callback]
 
     def train_model(self):
@@ -118,11 +131,13 @@ class IQA:
         train_labels_file = data_directory + self.train_info.get('train_lb', '')
         val_labels_file = data_directory + self.train_info.get('val_lb', '')
 
-        train_datagen = ImageDataGenerator(rescale=1. / 255,
-                                           # horizontal_flip=True,
-                                           # rotation_range=15,
-                                           # fill_mode='reflect'
-                                           )
+        augment = self.train_info.get('augment')
+        if augment:
+            train_datagen = ImageDataGenerator(rescale=1. / 255,
+                                               horizontal_flip=True)
+        else:
+            train_datagen = ImageDataGenerator(rescale=1. / 255)
+
         val_datagen = ImageDataGenerator(rescale=1. / 255)
 
         train_df = pd.read_csv(train_labels_file)
@@ -131,12 +146,12 @@ class IQA:
         target_size = self.image_original_size if self.crop_image else self.model_input_shape
         train_generator = train_datagen.flow_from_dataframe(
             train_df, directory=train_dir, x_col='image_name', y_col='MOS',
-            target_size=target_size, interpolation='bilinear',
+            target_size=target_size, interpolation='lanczos',
             batch_size=self.batch_size, class_mode='raw')
 
         valid_generator = val_datagen.flow_from_dataframe(
             val_df, directory=val_dir, x_col='image_name', y_col='MOS',
-            target_size=target_size, interpolation='bilinear',
+            target_size=target_size, interpolation='lanczos',
             batch_size=self.batch_size, class_mode='raw')
 
         crop_train = None
@@ -180,7 +195,7 @@ class IQA:
         target_size = self.image_original_size if self.crop_image else self.model_input_shape
         test_generator = test_datagen.flow_from_dataframe(
             test_df, directory=test_dir, x_col='image_name', y_col='MOS',
-            target_size=target_size, interpolation='bilinear',
+            target_size=target_size, interpolation='lanczos',
             batch_size=self.batch_size, class_mode='raw')
 
         crop_test = None
@@ -190,7 +205,7 @@ class IQA:
         val_loss = self.model.evaluate(
             crop_test if self.crop_image else test_generator,
             steps=test_generator.samples // self.batch_size)
-        print(f'Values (huber, srcc, plcc, rmse, mae): {val_loss}')
+        print(f'Values (mse, mae, rmse_tf, plcc_tf, srcc_tf): {val_loss}')
 
     def predict_score_for_image(self, image_path):
         img = image.load_img(image_path, target_size=self.model_input_shape)

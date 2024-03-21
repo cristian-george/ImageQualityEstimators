@@ -1,7 +1,11 @@
 import os
 
+import numpy as np
+
 from model_config.model_config import ConfigParser
 from model.model_class import IQA
+from model_evaluation.error_class import PlotErrors
+from model_evaluation.evaluate_class import ModelEvaluation
 from util.gpu_utils import check_gpu_support, limit_gpu_memory, increase_cpu_num_threads
 
 if __name__ == "__main__":
@@ -14,7 +18,10 @@ if __name__ == "__main__":
     while True:
         print("Options: ")
         print("1 for training a model")
-        print("2 to evaluate a model")
+        print("2 to evaluate a model batch by batch")
+        print("3 to evaluate a model image by image")
+        print("4 to plot difference error between predicted and true scores")
+        print("5 to plot absolute error between predicted and true scores")
         print("0 to exit")
 
         option = int(input("Enter option: "))
@@ -27,6 +34,7 @@ if __name__ == "__main__":
                     config_parser.get_learn_info(),
                     config_parser.get_train_info(),
                     config_parser.get_evaluate_info())
+        # model.model.summary(show_trainable=True)
 
         match option:
             case 1:
@@ -34,3 +42,12 @@ if __name__ == "__main__":
                 model.train_model()
             case 2:
                 model.evaluate_model()
+            case 3:
+                model_eval = ModelEvaluation(model, config_parser.get_evaluate_info())
+                model_eval.evaluate()
+            case 4:
+                plot_errors = PlotErrors(model, config_parser.get_evaluate_info())
+                plot_errors.plot_errors(lambda x, y: x - y, 'Difference (pred - true) vs. True Scores')
+            case 5:
+                plot_errors = PlotErrors(model, config_parser.get_evaluate_info())
+                plot_errors.plot_errors(lambda x, y: np.abs(x - y), 'Absolute Error vs. True Scores')

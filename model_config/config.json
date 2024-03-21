@@ -6,59 +6,48 @@
       384
     ],
     "model_input_shape": [
-      384,
-      256
+      224,
+      224
     ],
-    "batch_size": 10,
-    "epoch_size": 40,
+    "batch_size": 16,
+    "epoch_size": 30,
     "crop_image": false,
-    "augment": false,
+    "freeze": false,
     "dense": [
+      2048,
       1024,
-      512,
-      256
+      256,
+      1
     ],
     "dropout": [
-      0.3,
-      0.3,
-      0.6
+      0.25,
+      0.25,
+      0.5,
+      0
     ]
   },
   "learn_info": {
     "lr": 1e-4,
     "loss": {
-      "name": "huber",
-      "delta": 0.11
-    },
-    "custom_scheduler": {
-      "epoch_decays": [
-        25,
-        30,
-        35,
-        40
-      ],
-      "learning_rates": [
-        1e-4,
-        9.5e-5,
-        9e-5
-      ]
+      "name": "mse"
     }
   },
   "train_info": {
     "data_directory": "data/KonIQ-10K/",
-    "train_directory": "train/all_classes",
-    "val_directory": "val/all_classes",
+    "train_directory": "train",
+    "val_directory": "val",
     "train_lb": "train_labels.csv",
     "val_lb": "val_labels.csv",
-    "initial_epoch": 0,
-    "continue_train": "",
+    "augment": true,
+    "initial_epoch": 32,
+    "continue_train": "../trained_models/resnet50_20/best_model1.h5",
     "callbacks": {
       "tensorboard_checkpoint": {
         "log_dir": "../logs",
         "histogram_freq": 1
       },
       "best_checkpoint": {
-        "ckpt_dir": "../trained_models/resnet50_07",
+        "ckpt_dir": "../trained_models/resnet50_20",
         "monitor": "val_plcc",
         "mode": "max",
         "save_best_only": true,
@@ -68,8 +57,8 @@
   },
   "evaluate_info": {
     "data_directory": "data/KonIQ-10K/",
-    "weights_path": "../trained_models/resnet50_07/best_model.h5",
-    "test_directory": "test/all_classes",
+    "weights_path": "../trained_models/resnet50_19/best_model.h5",
+    "test_directory": "test",
     "test_lb": "test_labels.csv"
   }
 }
