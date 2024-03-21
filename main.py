@@ -46,8 +46,8 @@ if __name__ == "__main__":
                 model_eval = ModelEvaluation(model, config_parser.get_evaluate_info())
                 model_eval.evaluate()
             case 4:
-                plot_errors = PlotErrors(model, config_parser.get_evaluate_info())
-                plot_errors.plot_errors(lambda x, y: x - y, 'Difference (pred - true) vs. True Scores')
+                plot_err = PlotErrors(model, config_parser.get_evaluate_info())
+                plot_err.plot_errors(lambda x, y: x - y, 'Difference (pred - true) vs. True Scores')
             case 5:
-                plot_errors = PlotErrors(model, config_parser.get_evaluate_info())
-                plot_errors.plot_errors(lambda x, y: np.abs(x - y), 'Absolute Error vs. True Scores')
+                plot_err = PlotErrors(model, config_parser.get_evaluate_info())
+                plot_err.plot_errors(lambda x, y: np.abs(x - y), 'Absolute Error vs. True Scores')

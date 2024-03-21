@@ -29,7 +29,8 @@
   "learn_info": {
     "lr": 1e-4,
     "loss": {
-      "name": "mse"
+      "name": "huber",
+      "delta": 0.1111
     }
   },
   "train_info": {
@@ -39,16 +40,16 @@
     "train_lb": "train_labels.csv",
     "val_lb": "val_labels.csv",
     "augment": true,
-    "initial_epoch": 32,
-    "continue_train": "../trained_models/resnet50_20/best_model1.h5",
+    "initial_epoch": 0,
+    "continue_train": "",
     "callbacks": {
       "tensorboard_checkpoint": {
         "log_dir": "../logs",
         "histogram_freq": 1
       },
       "best_checkpoint": {
-        "ckpt_dir": "../trained_models/resnet50_20",
-        "monitor": "val_plcc",
+        "ckpt_dir": "../trained_models/resnet50_21",
+        "monitor": "val_plcc_tf",
         "mode": "max",
         "save_best_only": true,
         "save_weights_only": true
@@ -57,7 +58,7 @@
   },
   "evaluate_info": {
     "data_directory": "data/KonIQ-10K/",
-    "weights_path": "../trained_models/resnet50_19/best_model.h5",
+    "weights_path": "../trained_models/resnet50_20/best_model.h5",
     "test_directory": "test",
     "test_lb": "test_labels.csv"
   }

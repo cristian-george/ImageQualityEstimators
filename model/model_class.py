@@ -1,17 +1,18 @@
 import os
+
+import keras.losses
 import pandas as pd
 import tensorflow as tf
-from keras.applications import VGG16
 from keras.applications import ResNet50
-from keras.models import Model
-from keras.layers import Dense, Dropout, GlobalAveragePooling2D, BatchNormalization
-from keras.optimizers import Adam
+from keras.applications import VGG16
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
+from keras.layers import Dense, Dropout, GlobalAveragePooling2D
+from keras.models import Model
+from keras.optimizers import Adam
 from keras.preprocessing.image import ImageDataGenerator
 from keras_preprocessing import image
-from keras.applications.resnet import preprocess_input
 
-from model.metrics import plcc_tf, rmse_tf, srcc_tf
+from model.metrics import plcc_tf, rmse_tf
 from model.scheduler import LRSchedule
 from util.random_crop import crop_generator
 
@@ -75,23 +76,40 @@ class IQA:
     def load_weights(self, weights_path):
         self.model.load_weights(weights_path)
 
-    def compile_model(self, total_batches=0):
+    def __get_learning_rate(self, total_batches):
         lr = self.learn_info.get('lr')
         if lr:
-            learning_rate = lr
+            return lr
         else:
             custom_scheduler = self.learn_info.get('custom_scheduler', {})
             decay_epochs = custom_scheduler.get('epoch_decays', [])
             learning_rates = custom_scheduler.get('learning_rates', [])
 
-            learning_rate = LRSchedule(decay_epochs=decay_epochs,
-                                       learning_rates=learning_rates,
-                                       total_batches=total_batches,
-                                       total_epochs=self.epoch_size)
+            return LRSchedule(decay_epochs=decay_epochs,
+                              learning_rates=learning_rates,
+                              total_batches=total_batches,
+                              total_epochs=self.epoch_size)
+
+    def __get_loss(self):
+        config_loss = self.learn_info.get('loss', {})
+
+        loss_name = config_loss.get('name')
+
+        if loss_name == 'huber':
+            delta = config_loss.get('delta')
+            return keras.losses.Huber(delta=delta)
+        elif loss_name == 'mae':
+            return 'mae'
+        else:
+            return 'mse'
+
+    def compile_model(self, total_batches=0):
+        learning_rate = self.__get_learning_rate(total_batches)
+        loss = self.__get_loss()
 
         self.model.compile(optimizer=Adam(learning_rate=learning_rate),
-                           loss='mse',
-                           metrics=['mae', rmse_tf, plcc_tf, srcc_tf])
+                           loss=loss,
+                           metrics=['mae', rmse_tf, plcc_tf])
 
     def __callbacks(self):
         callbacks_info = self.train_info.get('callbacks', {})
@@ -205,7 +223,7 @@ class IQA:
         val_loss = self.model.evaluate(
             crop_test if self.crop_image else test_generator,
             steps=test_generator.samples // self.batch_size)
-        print(f'Values (mse, mae, rmse_tf, plcc_tf, srcc_tf): {val_loss}')
+        print(f'Values (mse, mae, rmse_tf, plcc_tf): {val_loss}')
 
     def predict_score_for_image(self, image_path):
         img = image.load_img(image_path, target_size=self.model_input_shape)
@@ -218,3 +236,19 @@ class IQA:
         score = self.model.predict(img_tensor, verbose=0)
 
         return score[0][0]
+
+    def predict_scores(self, image_names):
+        data_directory = self.evaluate_info.get('data_directory', '')
+        test_dir = data_directory + self.evaluate_info.get('test_directory', '')
+
+        weights_path = self.evaluate_info.get('weights_path', '')
+        self.load_weights(weights_path)
+        self.compile_model()
+
+        predicted_scores = []
+        for image_name in image_names:
+            image_path = test_dir + "/" + image_name
+
+            predicted_score = self.predict_score_for_image(image_path)  # Predict score for the image
+            predicted_scores.append(predicted_score)
+        return predicted_scores
