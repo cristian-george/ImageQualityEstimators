@@ -22,4 +22,7 @@ class ModelEvaluation:
         PLCC_test = np.round(plcc(y_pred, y_test), 3)
         SRCC_test = np.round(srcc(y_pred, y_test), 3)
 
-        print("PLCC, SRCC: ", PLCC_test, SRCC_test)
+        MAE_test = np.round(np.mean(np.abs(y_pred - y_test)), 3)
+        RMSE_test = np.round(np.sqrt(np.mean((y_pred - y_test) ** 2)), 3)
+
+        print("PLCC, SRCC, MAE, RMSE: ", PLCC_test, SRCC_test, MAE_test, RMSE_test)
