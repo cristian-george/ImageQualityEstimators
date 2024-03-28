@@ -24,6 +24,7 @@ if __name__ == "__main__":
         print("5 to plot predicted and true scores")
         print("6 to plot difference error between predicted and true scores")
         print("7 to plot absolute error between predicted and true scores")
+        print("8 to evaluate BRISQUE")
         print("0 to exit")
 
         option = int(input("Enter option: "))
@@ -59,3 +60,7 @@ if __name__ == "__main__":
             case 7:
                 plot_err = ModelPlotting(model, config_parser.get_evaluate_info())
                 plot_err.plot_errors(lambda x, y: np.abs(x - y), 'Absolute Error vs. True Scores')
+            case 8:
+                model_eval = ModelEvaluation(model, config_parser.get_evaluate_info())
+                model_eval.evaluate_method('data/LIVE2/LIVE2_matlab_brisque.csv',
+                                           method='brisque')

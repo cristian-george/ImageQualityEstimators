@@ -9,17 +9,16 @@ class ModelPlotting:
         self.data_directory = evaluate_info.get('data_directory', '')
         self.test_scores = self.data_directory + evaluate_info.get('test_lb', '')
 
-    def __get_true_scores(self):
-        df = pd.read_csv(self.test_scores)
-
-        scores = df['MOS'].values
-        return scores
-
     def __get_data(self):
         df = pd.read_csv(self.test_scores)
 
         image_names = df['image_name'].values
-        y_test = df['MOS'].values
+        score_MOS = df['MOS'].values
+
+        return image_names, score_MOS
+
+    def __get_true_pred(self):
+        image_names, y_test = self.__get_data()
 
         y_pred = self.model.predict_scores(image_names)
         y_pred = np.array(y_pred)
@@ -35,7 +34,7 @@ class ModelPlotting:
         return y_test, y_pred
 
     def plot_prediction(self):
-        y_test, y_pred = self.__get_data()
+        y_test, y_pred = self.__get_true_pred()
 
         # Plot the results
         plt.scatter(y_test, y_pred, s=10, alpha=0.5)
@@ -44,7 +43,7 @@ class ModelPlotting:
         plt.show()
 
     def plot_errors(self, function, title):
-        y_test, y_pred = self.__get_data()
+        y_test, y_pred = self.__get_true_pred()
 
         # Calculate error for each image
         errors = function(y_pred, y_test)
@@ -57,7 +56,7 @@ class ModelPlotting:
         plt.show()
 
     def plot_score_distribution(self):
-        scores = self.__get_true_scores()
+        _, scores = self.__get_data()
 
         # Define the bins
         bins = [1, 2, 3, 4, 5]
