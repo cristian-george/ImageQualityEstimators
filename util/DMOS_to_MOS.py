@@ -11,7 +11,7 @@ scores_file = '../data/LIVE2/LIVE2_scores.csv'
 df = pd.read_csv(scores_file)
 
 # Subtract 5 from the result of the division by 25
-df['new_MOS'] = 5 - df['MOS'] / 25
+df['MOS'] = 5 - df['DMOS'] / 25
 
 # Save the modified dataframe to a new CSV file
 df.to_csv(scores_file, index=False)
