@@ -59,13 +59,34 @@ class ModelPlotting:
         _, scores = self.__get_data()
 
         # Define the bins
-        bins = [1, 2, 3, 4, 5]
+        bins = list(np.arange(1.0, 5.05, 0.05))
 
-        # Plot the histogram
-        plt.hist(scores, bins=bins, edgecolor='black')
+        # Compute the histogram
+        counts, bin_edges = np.histogram(scores, bins=bins)
+
+        # Normalize the counts so that the highest bin reaches 0.9
+        counts = counts / counts.max() * 0.9
+
+        # Create a figure and axis
+        fig, ax = plt.subplots()
+
+        # Plot the normalized histogram
+        ax.hist(bin_edges[:-1], bin_edges, weights=counts)
 
         # Set labels and title
-        plt.xlabel('Score Range')
-        plt.ylabel('Frequency')
-        plt.title('Histogram of Scores')
+        ax.set_xlabel('Score Range')
+        ax.set_ylabel('Normalized Frequencies')
+        ax.set_title('Histogram of Scores')
+
+        # Set y-axis limits
+        ax.set_ylim(0.0, 1.0)
+
+        # Save the plot as an SVG file
+        fig_path = self.data_directory + "/score_distribution.svg"
+        fig.savefig(fig_path, format='svg')
+
+        # Show the plot
         plt.show()
+
+        # Close the plot to free memory
+        plt.close(fig)
