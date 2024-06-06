@@ -1,8 +1,10 @@
 import os
 
 import keras.losses
+import numpy as np
 import pandas as pd
 import tensorflow as tf
+import tqdm
 from keras.applications import ResNet50
 from keras.applications import VGG16
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
@@ -14,7 +16,7 @@ from keras_preprocessing import image
 
 from model.metrics import plcc_tf
 from model.scheduler import LRSchedule
-from util.random_crop import crop_generator
+from util.random_crop import crop_generator, random_crop
 from keras.applications.resnet import preprocess_input, decode_predictions
 
 
@@ -225,13 +227,25 @@ class IQA:
         print(f'Values (loss, mae, plcc_tf): {val_loss}')
 
     def predict_score_for_image(self, image_path):
-        img = image.load_img(image_path, target_size=self.model_input_shape)
+        # if self.crop_image:
+        #     img = image.load_img(image_path)
+        #     img_array = image.img_to_array(img)
+        #     scores = []
+        #     for i in range(0, 5):
+        #         crop = random_crop(img_array, self.model_input_shape)
+        #         crop = preprocess_input(crop)
+        #         crop_tensor = tf.expand_dims(crop, axis=0)
+        #         score = self.model.predict(crop_tensor, verbose=0)
+        #         scores.append(score[0][0])
+        #
+        #     return np.max(scores)
 
+        img = image.load_img(image_path,
+                             target_size=self.model_input_shape,
+                             interpolation="lanczos")
         img_array = image.img_to_array(img)
         img_array = preprocess_input(img_array)
-
         img_tensor = tf.expand_dims(img_array, axis=0)
-
         score = self.model.predict(img_tensor, verbose=0)
 
         return score[0][0]
@@ -245,7 +259,7 @@ class IQA:
         self.compile_model()
 
         predicted_scores = []
-        for image_name in image_names:
+        for image_name in tqdm.tqdm(image_names, desc="Predict scores"):
             image_path = test_dir + "/" + image_name
 
             predicted_score = self.predict_score_for_image(image_path)  # Predict score for the image
