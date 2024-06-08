@@ -1,3 +1,5 @@
+import os.path
+
 import pandas as pd
 import numpy as np
 
@@ -18,6 +20,8 @@ class ModelEvaluation:
     def __init__(self, model, evaluate_info):
         self.model = model
         self.data_directory = evaluate_info.get('data_directory', '')
+        self.weights_path = evaluate_info.get('weights_path', '')
+        self.test_directory = evaluate_info.get('test_directory', '')
         self.test_scores = self.data_directory + evaluate_info.get('test_lb', '')
 
     def __get_data(self):
@@ -28,11 +32,37 @@ class ModelEvaluation:
 
         return image_names, score_MOS
 
-    def evaluate(self):
+    def evaluate(self, keep_aspect_ratio):
+        dataset = self.data_directory.split("/")[-2]
+        weights_dir = "/".join(self.weights_path.split("/")[:-1])
+        model_name = self.weights_path.split("/")[-1].split(".")[0]
+
+        eval_file_name = f'eval_{model_name}_{dataset}_{self.test_directory}.csv'
+        eval_file_path = os.path.join(weights_dir, eval_file_name)
+
+        if os.path.isfile(eval_file_path):
+            override = input(f'File {eval_file_name} already exists. '
+                             f'Do you want to override it? (y/n): ')
+            if override.lower() != 'y':
+                print('File not overriden. Evaluate metrics...')
+                df = pd.read_csv(eval_file_path)
+                y_true = df['true_MOS']
+                y_pred = df['pred_MOS']
+
+                evaluate_metrics(y_pred, y_true)
+                return
+
         image_names, y_true = self.__get_data()
 
-        y_pred = self.model.predict_scores(image_names)
+        y_pred = self.model.predict_scores(image_names, keep_aspect_ratio)
         y_pred = np.array(y_pred)
+
+        df = pd.DataFrame({
+            'image_name': image_names,
+            'true_MOS': y_true,
+            'pred_MOS': y_pred,
+        })
+        df.to_csv(eval_file_path, index=False)
 
         evaluate_metrics(y_pred, y_true)
 
@@ -46,4 +76,3 @@ class ModelEvaluation:
         mos_scores = merged_df['MOS'].values
         method_scores = merged_df[method].values
         evaluate_metrics(method_scores, mos_scores)
-

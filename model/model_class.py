@@ -19,6 +19,8 @@ from model.scheduler import LRSchedule
 from util.random_crop import crop_generator, random_crop
 from keras.applications.resnet import preprocess_input, decode_predictions
 
+from util.resize_crop import resize_and_crop
+
 
 class IQA:
     def __init__(self, model_info, learn_info, train_info, evaluate_info):
@@ -226,19 +228,19 @@ class IQA:
             steps=test_generator.samples // self.batch_size)
         print(f'Values (loss, mae, plcc_tf): {val_loss}')
 
-    def predict_score_for_image(self, image_path):
-        # if self.crop_image:
-        #     img = image.load_img(image_path)
-        #     img_array = image.img_to_array(img)
-        #     scores = []
-        #     for i in range(0, 5):
-        #         crop = random_crop(img_array, self.model_input_shape)
-        #         crop = preprocess_input(crop)
-        #         crop_tensor = tf.expand_dims(crop, axis=0)
-        #         score = self.model.predict(crop_tensor, verbose=0)
-        #         scores.append(score[0][0])
-        #
-        #     return np.max(scores)
+    def predict_score_for_image(self, image_path, keep_aspect_ratio):
+        if keep_aspect_ratio:
+            img = image.load_img(image_path)
+            img_array = image.img_to_array(img)
+            crops = resize_and_crop(img_array, self.model_input_shape)
+            scores = []
+            for crop in crops:
+                crop = preprocess_input(crop)
+                crop_tensor = tf.expand_dims(crop, axis=0)
+                score = self.model.predict(crop_tensor, verbose=0)
+                scores.append(score[0][0])
+
+            return np.max(scores)
 
         img = image.load_img(image_path,
                              target_size=self.model_input_shape,
@@ -250,7 +252,7 @@ class IQA:
 
         return score[0][0]
 
-    def predict_scores(self, image_names):
+    def predict_scores(self, image_names, keep_aspect_ratio):
         data_directory = self.evaluate_info.get('data_directory', '')
         test_dir = data_directory + self.evaluate_info.get('test_directory', '')
 
@@ -262,6 +264,7 @@ class IQA:
         for image_name in tqdm.tqdm(image_names, desc="Predict scores"):
             image_path = test_dir + "/" + image_name
 
-            predicted_score = self.predict_score_for_image(image_path)  # Predict score for the image
+            # Predict score for the image
+            predicted_score = self.predict_score_for_image(image_path, keep_aspect_ratio)
             predicted_scores.append(predicted_score)
         return predicted_scores
