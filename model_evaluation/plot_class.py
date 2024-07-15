@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -6,8 +8,10 @@ import matplotlib.pyplot as plt
 class ModelPlotting:
     def __init__(self, model, evaluate_info):
         self.model = model
-        self.data_directory = evaluate_info.get('data_directory', '')
-        self.test_scores = self.data_directory + evaluate_info.get('test_lb', '')
+        self.root_directory = evaluate_info.get('root_directory', '')
+        self.test_directory = evaluate_info.get('test_directory', '')
+        self.weights_path = evaluate_info.get('weights_path', '')
+        self.test_scores = self.root_directory + evaluate_info.get('test_lb', '')
 
     def __get_data(self):
         df = pd.read_csv(self.test_scores)
@@ -18,10 +22,21 @@ class ModelPlotting:
         return image_names, score_MOS
 
     def __get_true_pred(self):
-        image_names, y_test = self.__get_data()
+        dataset = self.root_directory.split("/")[-2]
+        weights_dir = "/".join(self.weights_path.split("/")[:-1])
+        model_name = self.weights_path.split("/")[-1].split(".")[0]
 
-        y_pred = self.model.predict_scores(image_names)
-        y_pred = np.array(y_pred)
+        eval_file_name = f'eval_{model_name}_{dataset}_{self.test_directory}.csv'
+        eval_file_path = os.path.join(weights_dir, eval_file_name)
+
+        if not os.path.isfile(eval_file_path):
+            print(f"Evaluation file {eval_file_name} is not found.")
+            return
+
+        df = pd.read_csv(eval_file_path)
+        image_names = df['image_name']
+        y_true = df['true_MOS']
+        y_pred = df['pred_MOS']
 
         # Print bad predicted images among with their score and error
         for i in range(len(y_pred)):
@@ -29,9 +44,9 @@ class ModelPlotting:
                 print(
                     f"Image Name: {image_names[i]}, "
                     f"Predicted Score: {y_pred[i]}, "
-                    f"True Score: {y_test[i]}")
+                    f"True Score: {y_true[i]}")
 
-        return y_test, y_pred
+        return y_true, y_pred
 
     def plot_prediction(self):
         y_test, y_pred = self.__get_true_pred()
@@ -82,7 +97,7 @@ class ModelPlotting:
         ax.set_ylim(0.0, 1.0)
 
         # Save the plot as an SVG file
-        fig_path = self.data_directory + "/score_distribution.svg"
+        fig_path = self.root_directory + "/score_distribution.svg"
         fig.savefig(fig_path, format='svg')
 
         # Show the plot

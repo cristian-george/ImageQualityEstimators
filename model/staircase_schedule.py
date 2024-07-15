@@ -3,9 +3,9 @@ import tensorflow as tf
 from keras.optimizers.schedules.learning_rate_schedule import LearningRateSchedule
 
 
-class LRSchedule(LearningRateSchedule, ABC):
+class StaircaseSchedule(LearningRateSchedule, ABC):
     def __init__(self, decay_epochs, learning_rates, total_epochs, total_batches):
-        super(LRSchedule, self).__init__()
+        super(StaircaseSchedule, self).__init__()
         self.epochs = decay_epochs
         self.lr = tf.constant(learning_rates)
         self.total_epochs = total_epochs

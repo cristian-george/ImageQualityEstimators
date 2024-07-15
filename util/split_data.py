@@ -3,30 +3,36 @@ import os
 from sklearn.model_selection import train_test_split
 import shutil
 
-label_file_path = "../data/LIVE2_KonIQ/LIVE2_KonIQ_labels.csv"
-image_dir = "../data/LIVE2_KonIQ/images"
+dataset = "LIVE2_LIVEitW"
+
+dataset_dir = f"../data/{dataset}"
+label_file_path = f"{dataset_dir}/{dataset}_labels.csv"
+image_dir = f"{dataset_dir}/images"
 
 labels = pd.read_csv(label_file_path)
 
-validation_size = 1920
-test_size = 2004
+validation_size = 960
+test_size = 1006
 
-train_data, test_data = train_test_split(labels, test_size=(test_size + validation_size) / len(labels), random_state=42)
+train_data, test_data = train_test_split(labels,
+                                         test_size=(test_size + validation_size) / len(labels),
+                                         random_state=42)
 
-validation_data, test_data = train_test_split(test_data, test_size=test_size / (test_size + validation_size),
+validation_data, test_data = train_test_split(test_data,
+                                              test_size=test_size / (test_size + validation_size),
                                               random_state=42)
 
 print("Train set length:", len(train_data))
 print("Validation set length:", len(validation_data))
 print("Test set length:", len(test_data))
 
-train_data.to_csv("../data/LIVE2_KonIQ/train_labels.csv", index=False)
-validation_data.to_csv("../data/LIVE2_KonIQ/val_labels.csv", index=False)
-test_data.to_csv("../data/LIVE2_KonIQ/test_labels.csv", index=False)
+train_data.to_csv(f"{dataset_dir}/train_labels.csv", index=False)
+validation_data.to_csv(f"{dataset_dir}/val_labels.csv", index=False)
+test_data.to_csv(f"{dataset_dir}/test_labels.csv", index=False)
 
-train_dir = "../data/LIVE2_KonIQ/train"
-val_dir = "../data/LIVE2_KonIQ/val"
-test_dir = "../data/LIVE2_KonIQ/test"
+train_dir = f"{dataset_dir}/train"
+val_dir = f"{dataset_dir}/val"
+test_dir = f"{dataset_dir}/test"
 
 os.makedirs(train_dir, exist_ok=True)
 os.makedirs(val_dir, exist_ok=True)

@@ -19,10 +19,10 @@ def evaluate_metrics(y_pred, y_true):
 class ModelEvaluation:
     def __init__(self, model, evaluate_info):
         self.model = model
-        self.data_directory = evaluate_info.get('data_directory', '')
-        self.weights_path = evaluate_info.get('weights_path', '')
+        self.root_directory = evaluate_info.get('root_directory', '')
         self.test_directory = evaluate_info.get('test_directory', '')
-        self.test_scores = self.data_directory + evaluate_info.get('test_lb', '')
+        self.weights_path = evaluate_info.get('weights_path', '')
+        self.test_scores = self.root_directory + evaluate_info.get('test_lb', '')
 
     def __get_data(self):
         df = pd.read_csv(self.test_scores)
@@ -33,7 +33,7 @@ class ModelEvaluation:
         return image_names, score_MOS
 
     def evaluate(self, keep_aspect_ratio):
-        dataset = self.data_directory.split("/")[-2]
+        dataset = self.root_directory.split("/")[-2]
         weights_dir = "/".join(self.weights_path.split("/")[:-1])
         model_name = self.weights_path.split("/")[-1].split(".")[0]
 
@@ -44,7 +44,7 @@ class ModelEvaluation:
             override = input(f'File {eval_file_name} already exists. '
                              f'Do you want to override it? (y/n): ')
             if override.lower() != 'y':
-                print('File not overriden. Evaluate metrics...')
+                print('File not overridden. Evaluate metrics...')
                 df = pd.read_csv(eval_file_path)
                 y_true = df['true_MOS']
                 y_pred = df['pred_MOS']

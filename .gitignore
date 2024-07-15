@@ -184,5 +184,11 @@ fabric.properties
 # idea folder, uncomment if you don't need it
 .idea
 
-# data folder
+# Datasets
 data
+
+# Trained models
+trained_models
+
+# Tensorboard logs
+logs
