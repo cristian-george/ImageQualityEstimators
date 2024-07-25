@@ -1,24 +1,19 @@
 {
-  "data_directory": "data/LIVE2_LIVEitW/",
+  "data_directory": "data/KonIQ-10K/",
   "train_directory": "train",
   "val_directory": "val",
   "train_lb": "train_labels.csv",
   "val_lb": "val_labels.csv",
-  "image_size": [
-    384,
-    512
-  ],
-  "crop_image": false,
   "augment": true,
   "batch_size": 16,
-  "epoch_size": 10,
+  "epoch_size": 40,
   "continue_train": {
-    "from_epoch": 60,
-    "from_weights": "trained_models/resnet50_LIVE2_LIVEitW_bsz16_MSE/best_model2.h5"
+    "from_epoch": 0,
+    "from_weights": ""
   },
   "lr": {
     "name": "constant",
-    "value": 1e-5
+    "value": 1e-4
   },
   "loss": {
     "name": "mse"
@@ -29,7 +24,7 @@
       "histogram_freq": 1
     },
     "best_checkpoint": {
-      "ckpt_dir": "trained_models/resnet50_LIVE2_LIVEitW_bsz16_MSE",
+      "ckpt_dir": "trained_models/resnet50_KonIQ-10K_256x256_bsz16_MSE/01",
       "monitor": "val_loss",
       "mode": "min",
       "save_best_only": true,

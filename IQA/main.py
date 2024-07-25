@@ -1,12 +1,11 @@
 import os
-
 import numpy as np
 
+from util.gpu_funcs import check_gpu_support, limit_gpu_memory, increase_cpu_num_threads
 from model_config.config_parser import ConfigParser
-from model.model_class import IQA
-from model_evaluation.plot_class import ModelPlotting
-from model_evaluation.evaluate_class import ModelEvaluation
-from util.gpu_utils import check_gpu_support, limit_gpu_memory, increase_cpu_num_threads
+from model.model_class import ImageQualityPredictor
+from model.train_class import PredictorTrainer
+from model.evaluate_class import PredictorEvaluator
 
 if __name__ == "__main__":
     use_gpu = check_gpu_support()
@@ -17,16 +16,14 @@ if __name__ == "__main__":
 
     while True:
         print("Options: ")
-        print("1 for printing model summary")
-        print("2 for training a model")
-        print("3 to evaluate a model batch by batch")
-        print("4 to evaluate a model image by image")
-        print("5 to evaluate a model image by image - keep aspect ratio")
-        print("6 to plot distribution of scores in dataset")
-        print("7 to plot predicted and true scores")
-        print("8 to plot difference error between predicted and true scores")
-        print("9 to plot absolute error between predicted and true scores")
-        # print("10 to evaluate BRISQUE")
+        print("1 to print model summary")
+        print("2 to train a model")
+        print("3 to evaluate a model")
+        print("4 to plot distribution of scores in dataset")
+        print("5 to plot predicted and true scores")
+        print("6 to plot difference error between predicted and true scores")
+        print("7 to plot absolute error between predicted and true scores")
+        print("8 to evaluate BRISQUE")
         print("0 to exit")
 
         option = int(input("Enter option: "))
@@ -35,38 +32,26 @@ if __name__ == "__main__":
 
         config_parser = ConfigParser()
 
-        model = IQA(config_parser.get_model_info(),
-                    config_parser.get_train_info(),
-                    config_parser.get_evaluate_info())
-        model.build_model()
+        quality_predictor = ImageQualityPredictor(config_parser.get_model_info())
+        trainer = PredictorTrainer(config_parser.get_train_info(), quality_predictor)
+        evaluator = PredictorEvaluator(config_parser.get_evaluate_info(), quality_predictor)
 
         match option:
             case 1:
-                model.summary()
+                quality_predictor.summary()
             case 2:
                 config_parser.save_train_config()
-                model.train_model()
+                trainer.fit_model()
             case 3:
-                model.evaluate_model()
+                evaluator.evaluate_model()
             case 4:
-                model_eval = ModelEvaluation(model, config_parser.get_evaluate_info())
-                model_eval.evaluate(keep_aspect_ratio=False)
+                evaluator.plot_score_distribution()
             case 5:
-                model_eval = ModelEvaluation(model, config_parser.get_evaluate_info())
-                model_eval.evaluate(keep_aspect_ratio=True)
+                evaluator.plot_prediction()
             case 6:
-                plot_distribution = ModelPlotting(None, config_parser.get_evaluate_info())
-                plot_distribution.plot_score_distribution()
+                evaluator.plot_errors(lambda x, y: x - y, 'Difference Error vs. True Scores')
             case 7:
-                plot_pred = ModelPlotting(model, config_parser.get_evaluate_info())
-                plot_pred.plot_prediction()
+                evaluator.plot_errors(lambda x, y: np.abs(x - y), 'Absolute Error vs. True Scores')
             case 8:
-                plot_err = ModelPlotting(model, config_parser.get_evaluate_info())
-                plot_err.plot_errors(lambda x, y: x - y, 'Difference Error vs. True Scores')
-            case 9:
-                plot_err = ModelPlotting(model, config_parser.get_evaluate_info())
-                plot_err.plot_errors(lambda x, y: np.abs(x - y), 'Absolute Error vs. True Scores')
-            # case 10:
-            #     model_eval = ModelEvaluation(model, config_parser.get_evaluate_info())
-            #     model_eval.evaluate_method('data/LIVE2/LIVE2_matlab_brisque.csv',
-            #                                method='brisque')
+                evaluator.evaluate_method('data/LIVE2/LIVE2_matlab_brisque.csv',
+                                          method='brisque')
