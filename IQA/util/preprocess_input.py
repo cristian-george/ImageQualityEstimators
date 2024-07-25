@@ -23,29 +23,31 @@ def random_crop(image, crop_size):
 
 
 def crop_5patches(image, target_size):
-    image_shape = tf.shape(image)
-    center = (image_shape[0] // 2, image_shape[1] // 2)
+    image_shape = tf.shape(image)[:2]
+    height, width = image_shape[0], image_shape[1]
+    center = (height // 2, width // 2)
 
-    left_up = tf.image.crop_to_bounding_box(image, 0, 0, target_size[0], target_size[1])
-    right_up = tf.image.crop_to_bounding_box(image, 0, image_shape[1] - target_size[1], target_size[0], target_size[1])
-    left_down = tf.image.crop_to_bounding_box(image, image_shape[0] - target_size[0], 0, target_size[0], target_size[1])
-    right_down = tf.image.crop_to_bounding_box(image, image_shape[0] - target_size[0], image_shape[1] - target_size[1],
-                                               target_size[0], target_size[1])
+    patches = [
+        tf.image.crop_to_bounding_box(image, 0, 0, target_size[0], target_size[1]),  # Top-left
+        tf.image.crop_to_bounding_box(image, 0, width - target_size[1], target_size[0], target_size[1]),  # Top-right
+        tf.image.crop_to_bounding_box(image, height - target_size[0], 0, target_size[0], target_size[1]),  # Bottom-left
+        tf.image.crop_to_bounding_box(image, height - target_size[0], width - target_size[1], target_size[0],
+                                      target_size[1]),  # Bottom-right
+        tf.image.crop_to_bounding_box(image, center[0] - target_size[0] // 2, center[1] - target_size[1] // 2,
+                                      target_size[0], target_size[1])  # Center
+    ]
 
-    center = tf.image.crop_to_bounding_box(image, center[0] - target_size[0] // 2, center[1] - target_size[1] // 2,
-                                           target_size[0], target_size[1])
-
-    return [left_up, right_up, left_down, right_down, center]
+    return tf.stack(patches)
 
 
-def static_preprocess_image(image_path):
+def load_and_preprocess_input(image_path):
     image = load_and_decode_image(image_path)
     image = preprocess_input(image)
 
     return image
 
 
-def dynamic_preprocess_image(image, target_size=(256, 256), flip_left_right=False):
+def crop_and_flip_input(image, target_size=(256, 256), flip_left_right=False):
     if image.shape[:2] != target_size:
         image = random_crop(image, target_size)
 

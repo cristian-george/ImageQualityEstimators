@@ -8,6 +8,8 @@ from model.train_class import PredictorTrainer
 from model.evaluate_class import PredictorEvaluator
 
 if __name__ == "__main__":
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+
     use_gpu = check_gpu_support()
     if use_gpu:
         limit_gpu_memory(memory_limit=3500)

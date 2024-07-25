@@ -65,13 +65,10 @@ class ImageQualityPredictor(object):
                            loss=loss,
                            metrics=['mae', plcc_tf])
 
-    def fit(self, data, steps_per_epoch, epochs, initial_epoch, validation_data, validation_steps, callbacks):
+    def fit(self, data, epochs, initial_epoch, callbacks):
         history = self.model.fit(data,
-                                 steps_per_epoch=steps_per_epoch,
                                  epochs=epochs,
                                  initial_epoch=initial_epoch,
-                                 validation_data=validation_data,
-                                 validation_steps=validation_steps,
                                  callbacks=callbacks)
         return history
 
