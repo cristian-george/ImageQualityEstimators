@@ -1,8 +1,9 @@
 {
-  "root_directory": "data/LIVE2_LIVEitW/",
+  "root_directory": "data/KonIQ-10K/",
   "test_directory": "test",
   "test_lb": "test_labels.csv",
-  "weights_path": "trained_models/resnet50_LIVE2_LIVEitW_bsz16_MSE/best_model.h5",
+  "weights_path": "trained_models/resnet50_KonIQ-10K_256x256_bsz16_MSE/02/best_model.h5",
+  "crop_image": true,
   "batch_size": 16,
   "loss": {
     "name": "mse"

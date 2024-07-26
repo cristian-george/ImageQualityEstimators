@@ -65,13 +65,14 @@ class ImageQualityPredictor(object):
                            loss=loss,
                            metrics=['mae', plcc_tf])
 
-    def fit(self, data, epochs, initial_epoch, callbacks):
+    def fit(self, data, epochs, initial_epoch, callbacks, validation_data=None):
         history = self.model.fit(data,
+                                 validation_data=validation_data,
                                  epochs=epochs,
                                  initial_epoch=initial_epoch,
                                  callbacks=callbacks)
         return history
 
-    def predict(self, data):
-        prediction = self.model(data, training=False)
-        return prediction[0][0]
+    def predict(self, data, batch_size):
+        prediction = self.model.predict(data, batch_size=batch_size, verbose=0)
+        return prediction

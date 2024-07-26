@@ -2,13 +2,12 @@ import os
 
 import keras.losses
 import pandas as pd
-import tensorflow as tf
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.optimizers.schedules.learning_rate_schedule import ExponentialDecay
 
 from model.model_class import ImageQualityPredictor
 from util.callbacks import ValidationCallback
-from util.preprocess_input import crop_5patches, load_and_preprocess_input, crop_and_flip_input
+from util.dataset_funcs import flow_train_set_from_dataframe, flow_validation_set_from_dataframe
 
 
 class PredictorTrainer:
@@ -26,6 +25,7 @@ class PredictorTrainer:
         self.val_lb = self.data_directory + self.train_info.get('val_lb', '')
 
         self.augment = self.train_info.get('augment')
+        self.crop_image = self.train_info.get('crop_image')
 
         self.batch_size = self.train_info.get('batch_size')
         self.epoch_size = self.train_info.get('epoch_size')
@@ -94,40 +94,6 @@ class PredictorTrainer:
 
         return [tensorboard_callback, best_model_callback, early_stopping_callback]
 
-    def __create_train_set_from_dataframe(self, train_df):
-        image_paths = train_df['image_name'].apply(lambda image_path: self.train_directory + "/" + image_path)
-        labels = train_df['MOS']
-
-        dataset = tf.data.Dataset.from_tensor_slices((image_paths, labels))
-        dataset = dataset.map(lambda x, y: (load_and_preprocess_input(x), y),
-                              num_parallel_calls=tf.data.AUTOTUNE)
-        dataset.cache()
-
-        dataset = dataset.map(lambda x, y: (crop_and_flip_input(x, self.model.input_shape, self.augment), y),
-                              num_parallel_calls=tf.data.AUTOTUNE)
-        dataset = dataset.shuffle(dataset.cardinality(), reshuffle_each_iteration=True)
-        dataset = dataset.batch(self.batch_size)
-        dataset = dataset.prefetch(tf.data.AUTOTUNE)
-        return dataset
-
-    def __create_validation_set_from_dataframe(self, val_df):
-        image_paths = val_df['image_name'].apply(lambda image_path: self.val_directory + "/" + image_path)
-        labels = val_df['MOS']
-
-        dataset = tf.data.Dataset.from_tensor_slices((image_paths, labels))
-        dataset = dataset.map(lambda x, y: (load_and_preprocess_input(x), y),
-                              num_parallel_calls=tf.data.AUTOTUNE)
-        dataset = dataset.shuffle(dataset.cardinality(),
-                                  reshuffle_each_iteration=True)
-
-        dataset = dataset.map(lambda x, y: (crop_5patches(x, self.model.input_shape), y),
-                              num_parallel_calls=tf.data.AUTOTUNE)
-        dataset = dataset.batch(self.batch_size)
-        dataset.cache()
-
-        dataset = dataset.prefetch(tf.data.AUTOTUNE)
-        return dataset
-
     def fit_model(self):
         continue_train_from_epoch = self.continue_train.get('from_epoch')
         continue_train_from_weights = self.continue_train.get('from_weights', '')
@@ -137,20 +103,31 @@ class PredictorTrainer:
 
         train_df = pd.read_csv(self.train_lb)
         val_df = pd.read_csv(self.val_lb)
+        target_size = self.model.input_shape if self.crop_image else None
+        train_dataset = flow_train_set_from_dataframe(train_df,
+                                                      self.train_directory,
+                                                      self.batch_size,
+                                                      target_size=target_size,
+                                                      augment=self.augment)
+        val_dataset = flow_validation_set_from_dataframe(val_df,
+                                                         self.train_directory,
+                                                         self.batch_size,
+                                                         target_size=target_size)
 
-        train_dataset = self.__create_train_set_from_dataframe(train_df)
-        val_dataset = self.__create_validation_set_from_dataframe(val_df)
-
-        loss = self.__get_loss()
-        learning_rate = self.__get_learning_rate(steps_per_epoch=train_df.shape[0] // self.batch_size)
-        self.model.compile(loss=loss,
+        loss_fn = self.__get_loss()
+        learning_rate = self.__get_learning_rate(steps_per_epoch=len(train_dataset) // self.batch_size)
+        self.model.compile(loss=loss_fn,
                            learning_rate=learning_rate)
 
-        validation_callback = ValidationCallback(data=val_dataset,
-                                                 loss=loss,
-                                                 target_size=self.model.input_shape)
+        callbacks = self.__callbacks()
+        if self.crop_image:
+            validation_callback = ValidationCallback(data=val_dataset,
+                                                     loss_fn=loss_fn,
+                                                     target_size=target_size)
+            callbacks = [validation_callback] + callbacks
 
         return self.model.fit(train_dataset,
                               epochs=self.epoch_size + continue_train_from_epoch,
                               initial_epoch=continue_train_from_epoch,
-                              callbacks=[validation_callback] + self.__callbacks())
+                              validation_data=val_dataset if self.crop_image else None,
+                              callbacks=callbacks)

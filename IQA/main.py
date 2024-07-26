@@ -1,14 +1,15 @@
 import os
+
 import numpy as np
 
-from util.gpu_funcs import check_gpu_support, limit_gpu_memory, increase_cpu_num_threads
-from model_config.config_parser import ConfigParser
+from model.evaluate_class import PredictorEvaluator
 from model.model_class import ImageQualityPredictor
 from model.train_class import PredictorTrainer
-from model.evaluate_class import PredictorEvaluator
+from model_config.config_parser import ConfigParser
+from util.gpu_funcs import check_gpu_support, limit_gpu_memory, increase_cpu_num_threads
 
 if __name__ == "__main__":
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
     use_gpu = check_gpu_support()
     if use_gpu:
@@ -25,7 +26,7 @@ if __name__ == "__main__":
         print("5 to plot predicted and true scores")
         print("6 to plot difference error between predicted and true scores")
         print("7 to plot absolute error between predicted and true scores")
-        print("8 to evaluate BRISQUE")
+        # print("8 to evaluate BRISQUE")
         print("0 to exit")
 
         option = int(input("Enter option: "))
@@ -51,9 +52,9 @@ if __name__ == "__main__":
             case 5:
                 evaluator.plot_prediction()
             case 6:
-                evaluator.plot_errors(lambda x, y: x - y, 'Difference Error vs. True Scores')
+                evaluator.plot_errors(lambda x, y: x - y, 'Difference Error')
             case 7:
-                evaluator.plot_errors(lambda x, y: np.abs(x - y), 'Absolute Error vs. True Scores')
-            case 8:
-                evaluator.evaluate_method('data/LIVE2/LIVE2_matlab_brisque.csv',
-                                          method='brisque')
+                evaluator.plot_errors(lambda x, y: np.abs(x - y), 'Absolute Error')
+            # case 8:
+            #     evaluator.evaluate_method('data/LIVE2/LIVE2_matlab_brisque.csv',
+            #                               method='brisque')

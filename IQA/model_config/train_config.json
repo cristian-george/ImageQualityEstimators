@@ -5,6 +5,7 @@
   "train_lb": "train_labels.csv",
   "val_lb": "val_labels.csv",
   "augment": true,
+  "crop_image": true,
   "batch_size": 16,
   "epoch_size": 40,
   "continue_train": {
