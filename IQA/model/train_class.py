@@ -110,7 +110,7 @@ class PredictorTrainer:
                                                       target_size=target_size,
                                                       augment=self.augment)
         val_dataset = flow_validation_set_from_dataframe(val_df,
-                                                         self.train_directory,
+                                                         self.val_directory,
                                                          self.batch_size,
                                                          target_size=target_size)
 
@@ -129,5 +129,5 @@ class PredictorTrainer:
         return self.model.fit(train_dataset,
                               epochs=self.epoch_size + continue_train_from_epoch,
                               initial_epoch=continue_train_from_epoch,
-                              validation_data=val_dataset if self.crop_image else None,
+                              validation_data=val_dataset if not self.crop_image else None,
                               callbacks=callbacks)
