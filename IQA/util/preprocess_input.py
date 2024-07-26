@@ -1,5 +1,4 @@
 import tensorflow as tf
-from keras.applications.resnet import preprocess_input
 
 
 def load_and_decode_image(image_path):
@@ -28,30 +27,36 @@ def crop_5patches(image, target_size):
     center = (height // 2, width // 2)
 
     patches = [
-        tf.image.crop_to_bounding_box(image, 0, 0, target_size[0], target_size[1]),  # Top-left
-        tf.image.crop_to_bounding_box(image, 0, width - target_size[1], target_size[0], target_size[1]),  # Top-right
-        tf.image.crop_to_bounding_box(image, height - target_size[0], 0, target_size[0], target_size[1]),  # Bottom-left
-        tf.image.crop_to_bounding_box(image, height - target_size[0], width - target_size[1], target_size[0],
-                                      target_size[1]),  # Bottom-right
-        tf.image.crop_to_bounding_box(image, center[0] - target_size[0] // 2, center[1] - target_size[1] // 2,
-                                      target_size[0], target_size[1])  # Center
+        # Top-left
+        tf.image.crop_to_bounding_box(image,
+                                      0,
+                                      0,
+                                      target_size[0],
+                                      target_size[1]),
+        # Top-right
+        tf.image.crop_to_bounding_box(image,
+                                      0,
+                                      width - target_size[1],
+                                      target_size[0],
+                                      target_size[1]),
+        # Bottom-left
+        tf.image.crop_to_bounding_box(image,
+                                      height - target_size[0],
+                                      0,
+                                      target_size[0],
+                                      target_size[1]),
+        # Bottom-right
+        tf.image.crop_to_bounding_box(image,
+                                      height - target_size[0],
+                                      width - target_size[1],
+                                      target_size[0],
+                                      target_size[1]),
+        # Center
+        tf.image.crop_to_bounding_box(image,
+                                      center[0] - target_size[0] // 2,
+                                      center[1] - target_size[1] // 2,
+                                      target_size[0],
+                                      target_size[1])
     ]
 
     return tf.stack(patches)
-
-
-def load_and_preprocess_input(image_path):
-    image = load_and_decode_image(image_path)
-    image = preprocess_input(image)
-
-    return image
-
-
-def crop_and_flip_input(image, target_size=(256, 256), flip_left_right=False):
-    if image.shape[:2] != target_size:
-        image = random_crop(image, target_size)
-
-    if flip_left_right:
-        image = random_flip_left_right(image)
-
-    return image
