@@ -3,7 +3,25 @@ import os
 import cv2
 from tqdm import tqdm
 
-from util.resize_funcs import white_fill
+
+def white_fill(image, target_size):
+    """
+    Adds white padding to the image until it reaches the target size.
+    """
+    h, w = image.shape[:2]
+    th, tw = target_size
+
+    # Calculate the padding amounts
+    pad_top = max((th - h) // 2, 0)
+    pad_bottom = max(th - h - pad_top, 0)
+    pad_left = max((tw - w) // 2, 0)
+    pad_right = max(tw - w - pad_left, 0)
+
+    # Add padding to the image
+    padded_image = cv2.copyMakeBorder(image, pad_top, pad_bottom, pad_left, pad_right, cv2.BORDER_CONSTANT,
+                                      value=[255, 255, 255])
+
+    return padded_image
 
 
 def white_fill_images(input_folder, output_folder, target_size):

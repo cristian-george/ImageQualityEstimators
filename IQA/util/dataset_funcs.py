@@ -11,17 +11,17 @@ def load_and_preprocess_input(image_path):
     return image
 
 
-def crop_and_flip_input(image, target_size=(256, 256), flip_left_right=False):
-    if image.shape[:2] != target_size:
-        image = random_crop(image, target_size)
-
-    if flip_left_right:
-        image = random_flip_left_right(image)
-
+def crop_input(image, target_size=(256, 256)):
+    image = random_crop(image, target_size)
     return image
 
 
-def flow_train_set_from_dataframe(dataframe, dir_path, batch_size, target_size=None, augment=False):
+def flip_input(image):
+    image = random_flip_left_right(image)
+    return image
+
+
+def flow_train_set_from_dataframe(dataframe, dir_path, batch_size, crop_size=None, augment=False):
     image_paths = dataframe['image_name'].apply(lambda image_path: dir_path + "/" + image_path)
     scores = dataframe['MOS']
 
@@ -29,10 +29,12 @@ def flow_train_set_from_dataframe(dataframe, dir_path, batch_size, target_size=N
     dataset = dataset.map(lambda x, y: (load_and_preprocess_input(x), y),
                           num_parallel_calls=tf.data.AUTOTUNE)
 
-    dataset = dataset.cache()
+    if crop_size is not None:
+        dataset = dataset.map(lambda x, y: (crop_input(x, crop_size), y),
+                              num_parallel_calls=tf.data.AUTOTUNE)
 
-    if augment and target_size is not None:
-        dataset = dataset.map(lambda x, y: (crop_and_flip_input(x, target_size, augment), y),
+    if augment:
+        dataset = dataset.map(lambda x, y: (flip_input(x), y),
                               num_parallel_calls=tf.data.AUTOTUNE)
 
     dataset = dataset.shuffle(dataset.cardinality(),
@@ -43,28 +45,27 @@ def flow_train_set_from_dataframe(dataframe, dir_path, batch_size, target_size=N
     return dataset
 
 
-def flow_validation_set_from_dataframe(dataframe, dir_path, batch_size, target_size=None):
+def flow_validation_set_from_dataframe(dataframe, dir_path, batch_size, crop_size=None):
     image_paths = dataframe['image_name'].apply(lambda image_path: dir_path + "/" + image_path)
     scores = dataframe['MOS']
 
     dataset = tf.data.Dataset.from_tensor_slices((image_paths, scores))
     dataset = dataset.map(lambda x, y: (load_and_preprocess_input(x), y),
                           num_parallel_calls=tf.data.AUTOTUNE)
+
+    if crop_size is not None:
+        dataset = dataset.map(lambda x, y: (crop_5patches(x, crop_size), y),
+                              num_parallel_calls=tf.data.AUTOTUNE)
 
     dataset = dataset.shuffle(dataset.cardinality(),
                               reshuffle_each_iteration=True)
 
-    if target_size is not None:
-        dataset = dataset.map(lambda x, y: (crop_5patches(x, target_size), y),
-                              num_parallel_calls=tf.data.AUTOTUNE)
-
     dataset = dataset.batch(batch_size)
-    dataset = dataset.cache()
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
     return dataset
 
 
-def flow_test_set_from_dataframe(dataframe, dir_path, batch_size, target_size=None):
+def flow_test_set_from_dataframe(dataframe, dir_path, batch_size, crop_size=None):
     image_paths = dataframe['image_name'].apply(lambda image_path: dir_path + "/" + image_path)
     scores = dataframe['MOS']
 
@@ -72,11 +73,10 @@ def flow_test_set_from_dataframe(dataframe, dir_path, batch_size, target_size=No
     dataset = dataset.map(lambda x, y: (load_and_preprocess_input(x), y),
                           num_parallel_calls=tf.data.AUTOTUNE)
 
-    if target_size is not None:
-        dataset = dataset.map(lambda x, y: (crop_5patches(x, target_size), y),
+    if crop_size is not None:
+        dataset = dataset.map(lambda x, y: (crop_5patches(x, crop_size), y),
                               num_parallel_calls=tf.data.AUTOTUNE)
 
     dataset = dataset.batch(batch_size)
-    dataset = dataset.cache()
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
     return dataset

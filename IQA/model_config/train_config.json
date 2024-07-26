@@ -5,7 +5,7 @@
   "train_lb": "train_labels.csv",
   "val_lb": "val_labels.csv",
   "augment": true,
-  "crop_image": true,
+  "crop_image": false,
   "batch_size": 16,
   "epoch_size": 40,
   "continue_train": {
@@ -21,11 +21,11 @@
   },
   "callbacks": {
     "tensorboard_checkpoint": {
-      "log_dir": "logs",
+      "log_dir": "logs/resnet50/KonIQ-10K_384x512_bsz16_MSE/01",
       "histogram_freq": 1
     },
     "best_checkpoint": {
-      "ckpt_dir": "trained_models/resnet50_KonIQ-10K_256x256_bsz16_MSE/02",
+      "ckpt_dir": "models/resnet50/KonIQ-10K_384x512_bsz16_MSE/01",
       "monitor": "val_loss",
       "mode": "min",
       "save_best_only": true,

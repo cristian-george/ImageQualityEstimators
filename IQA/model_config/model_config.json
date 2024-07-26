@@ -2,8 +2,8 @@
   "name": "resnet50",
   "freeze": true,
   "input_shape": [
-    256,
-    256
+    384,
+    512
   ],
   "dense": [
     2048,

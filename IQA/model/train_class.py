@@ -94,40 +94,64 @@ class PredictorTrainer:
 
         return [tensorboard_callback, best_model_callback, early_stopping_callback]
 
+    def __get_train_dataset(self, dataframe, target_size):
+        return flow_train_set_from_dataframe(
+            dataframe,
+            self.train_directory,
+            self.batch_size,
+            crop_size=target_size,
+            augment=self.augment)
+
+    def __get_val_dataset(self, dataframe, target_size):
+        return flow_validation_set_from_dataframe(
+            dataframe,
+            self.val_directory,
+            self.batch_size,
+            crop_size=target_size)
+
     def fit_model(self):
-        continue_train_from_epoch = self.continue_train.get('from_epoch')
-        continue_train_from_weights = self.continue_train.get('from_weights', '')
+        # Continue training the model using loaded weights
+        # and the specified epoch only if both are provided
+        initial_epoch = self.continue_train.get('from_epoch')
+        weights = self.continue_train.get('from_weights', '')
 
-        if continue_train_from_epoch and continue_train_from_weights:
-            self.model.load_weights(continue_train_from_weights)
+        if initial_epoch and weights:
+            self.model.load_weights(weights)
 
+        target_size = self.model.input_shape if self.crop_image else None
+
+        # Create datasets
         train_df = pd.read_csv(self.train_lb)
         val_df = pd.read_csv(self.val_lb)
-        target_size = self.model.input_shape if self.crop_image else None
-        train_dataset = flow_train_set_from_dataframe(train_df,
-                                                      self.train_directory,
-                                                      self.batch_size,
-                                                      target_size=target_size,
-                                                      augment=self.augment)
-        val_dataset = flow_validation_set_from_dataframe(val_df,
-                                                         self.val_directory,
-                                                         self.batch_size,
-                                                         target_size=target_size)
+        train_dataset = self.__get_train_dataset(train_df, target_size)
+        val_dataset = self.__get_val_dataset(val_df, target_size)
 
+        # Compile model
         loss_fn = self.__get_loss()
-        learning_rate = self.__get_learning_rate(steps_per_epoch=len(train_dataset) // self.batch_size)
-        self.model.compile(loss=loss_fn,
-                           learning_rate=learning_rate)
+        learning_rate = self.__get_learning_rate(
+            steps_per_epoch=len(train_dataset) // self.batch_size)
+
+        self.model.compile(
+            loss=loss_fn,
+            learning_rate=learning_rate)
 
         callbacks = self.__callbacks()
+
+        # Use a validation callback if the dataset images are not
+        # the same size as the model input
         if self.crop_image:
-            validation_callback = ValidationCallback(data=val_dataset,
-                                                     loss_fn=loss_fn,
-                                                     target_size=target_size)
+            validation_callback = ValidationCallback(
+                data=val_dataset,
+                loss_fn=loss_fn,
+                target_size=target_size)
+
+            # Insert the validation callback at the beginning,
+            # so it will be called first
             callbacks = [validation_callback] + callbacks
 
-        return self.model.fit(train_dataset,
-                              epochs=self.epoch_size + continue_train_from_epoch,
-                              initial_epoch=continue_train_from_epoch,
-                              validation_data=val_dataset if not self.crop_image else None,
-                              callbacks=callbacks)
+        return self.model.fit(
+            train_dataset,
+            epochs=self.epoch_size + initial_epoch,
+            initial_epoch=initial_epoch,
+            validation_data=val_dataset if not self.crop_image else None,
+            callbacks=callbacks)
