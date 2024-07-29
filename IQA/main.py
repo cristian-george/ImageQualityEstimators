@@ -2,18 +2,18 @@ import os
 
 import numpy as np
 
-from model.evaluate_class import PredictorEvaluator
-from model.model_class import ImageQualityPredictor
-from model.train_class import PredictorTrainer
-from model_config.config_parser import ConfigParser
-from util.gpu_funcs import check_gpu_support, limit_gpu_memory, increase_cpu_num_threads
+from model.config.config_parser import ConfigParser
+from model.image_quality_predictor import ImageQualityPredictor
+from model.predictor_evaluator import PredictorEvaluator
+from model.predictor_trainer import PredictorTrainer
+from util.gpu_tf import check_gpu_support, limit_gpu_memory, increase_cpu_num_threads
 
 if __name__ == "__main__":
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
     use_gpu = check_gpu_support()
     if use_gpu:
-        limit_gpu_memory(memory_limit=10 * 1024)
+        limit_gpu_memory(memory_limit=3.5 * 1024)
     else:
         increase_cpu_num_threads(num_threads=os.cpu_count())
 
@@ -56,5 +56,5 @@ if __name__ == "__main__":
             case 7:
                 evaluator.plot_errors(lambda x, y: np.abs(x - y), 'Absolute Error')
             # case 8:
-            #     evaluator.evaluate_method('data/LIVE2/LIVE2_matlab_brisque.csv',
+            #     evaluator.evaluate_method('data/datasets/LIVE2/LIVE2_matlab_brisque.csv',
             #                               method='brisque')

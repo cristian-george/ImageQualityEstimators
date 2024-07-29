@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras.applications.resnet import preprocess_input
 
-from util.preprocess_input import load_and_decode_image, random_crop, random_flip_left_right, crop_5patches
+from util.preprocess_images_tf import load_and_decode_image, random_crop, random_flip_left_right, crop_5patches
 
 
 def load_and_preprocess_input(image_path):

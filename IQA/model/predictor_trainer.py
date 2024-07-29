@@ -1,11 +1,12 @@
 import keras.losses
 import pandas as pd
-from keras.optimizers.schedules import ExponentialDecay
+from keras.optimizers.schedules.learning_rate_schedule import ExponentialDecay
 
-from model.model_class import ImageQualityPredictor
-from util.callbacks import get_tensorboard_callback, get_model_checkpoint_callbacks
-from util.dataset_funcs import flow_train_set_from_dataframe, flow_validation_set_from_dataframe
-from util.validation_callback import ValidationCallback
+from model.image_quality_predictor import ImageQualityPredictor
+from util.callbacks.model_checkpoint_callbacks import get_model_checkpoint_callbacks
+from util.callbacks.tensorboard_callback import get_tensorboard_callback
+from util.callbacks.validation_callback import ValidationCallback
+from util.flow_datasets_tf import flow_train_set_from_dataframe, flow_validation_set_from_dataframe
 
 
 class PredictorTrainer:

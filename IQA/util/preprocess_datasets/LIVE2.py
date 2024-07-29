@@ -2,8 +2,8 @@ import os
 
 from util.preprocess_datasets.white_fill_images import white_fill_images
 
-input_folder = '../../data/LIVE2_classes'
-output_folder = '../../data/LIVE2_classes-white_fill=384x512'
+input_folder = '../../data/datasets/LIVE2_classes'
+output_folder = '../../data/datasets/LIVE2_classes-white_fill=384x512'
 
 target_size = (384, 512)
 

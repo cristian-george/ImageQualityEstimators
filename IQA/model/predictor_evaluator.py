@@ -6,9 +6,9 @@ import tensorflow as tf
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
-from model.model_class import ImageQualityPredictor
-from util.dataset_funcs import flow_test_set_from_dataframe
+from model.image_quality_predictor import ImageQualityPredictor
 from util.metrics import evaluate_metrics
+from util.flow_datasets_tf import flow_test_set_from_dataframe
 
 
 class PredictorEvaluator:
