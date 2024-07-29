@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     use_gpu = check_gpu_support()
     if use_gpu:
-        limit_gpu_memory(memory_limit=3.5 * 1024)
+        limit_gpu_memory(memory_limit=10 * 1024)
     else:
         increase_cpu_num_threads(num_threads=os.cpu_count())
 

@@ -1,6 +1,4 @@
 import numpy as np
-import tensorflow as tf
-from keras import backend as K
 import scipy
 
 
@@ -16,20 +14,12 @@ def srcc(x, y):
     return scipy.stats.spearmanr(x, y)[0]
 
 
-# Metrics used for tensorflow ops
-def rmse_tf(y_true, y_pred):
-    return K.sqrt(K.mean(K.square(y_pred - y_true)))
+def mae(x, y):
+    return np.mean(np.abs(x - y))
 
 
-def plcc_tf(y_true, y_pred):
-    centered_true = y_true - K.mean(y_true)
-    centered_pred = y_pred - K.mean(y_pred)
-    return K.mean(centered_true * centered_pred) / (K.std(y_true) * K.std(y_pred) + K.epsilon())
-
-
-def srcc_tf(y_true, y_pred):
-    srcc_value = tf.py_function(srcc, [y_true, y_pred], tf.float32)
-    return srcc_value + K.epsilon()
+def rmse(x, y):
+    return np.sqrt(np.mean((x - y) ** 2))
 
 
 # Evaluation criteria
@@ -38,7 +28,7 @@ def evaluate_metrics(y_pred, y_true):
     PLCC = np.round(plcc(y_pred, y_true), 3)
     SRCC = np.round(srcc(y_pred, y_true), 3)
 
-    MAE = np.round(np.mean(np.abs(y_pred - y_true)), 3)
-    RMSE = np.round(np.sqrt(np.mean((y_pred - y_true) ** 2)), 3)
+    MAE = np.round(mae(y_pred, y_true), 3)
+    RMSE = np.round(rmse(y_pred, y_true), 3)
 
-    print("PLCC, SRCC, MAE, RMSE: ", PLCC, SRCC, MAE, RMSE)
+    return PLCC, SRCC, MAE, RMSE

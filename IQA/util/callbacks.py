@@ -1,38 +1,43 @@
-import numpy as np
-import tensorflow as tf
-from tqdm import tqdm
+import os
 
-from util.metrics import plcc
+from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 
 
-class ValidationCallback(tf.keras.callbacks.Callback):
-    def __init__(self, data, loss_fn, target_size):
-        super().__init__()
-        self.data = data
-        self.loss_fn = loss_fn
-        self.target_size = target_size
+def get_tensorboard_callback(callbacks_info):
+    tensorboard_info = callbacks_info.get('tensorboard', {})
+    log_dir = tensorboard_info.get('log_dir', '')
+    histogram_freq = tensorboard_info.get('histogram_freq')
 
-    def on_epoch_end(self, epoch, logs=None):
-        y_pred = []
-        y_true = []
+    tensorboard_callback = TensorBoard(log_dir=log_dir,
+                                       histogram_freq=histogram_freq)
 
-        for images, labels in tqdm(self.data, total=len(self.data), desc='Validation'):
-            batch_size = tf.shape(images)[0]
-            patches = tf.reshape(images, (-1, self.target_size[0], self.target_size[1], 3))
-            patch_predictions = self.model.predict(patches, batch_size=batch_size, verbose=0)
-            patch_predictions = tf.reshape(patch_predictions, (batch_size, 5))
-            patch_predictions = tf.reduce_mean(patch_predictions, axis=1)
-            y_pred.append(patch_predictions.numpy())
-            y_true.append(labels.numpy())
+    return tensorboard_callback
 
-        y_pred = np.concatenate(y_pred, axis=0)
-        y_true = np.concatenate(y_true, axis=0)
 
-        loss = self.loss_fn(y_true, y_pred)
-        logs['val_loss'] = loss
+def get_model_checkpoint_callbacks(callbacks_info):
+    model_checkpoint_info = callbacks_info.get('model_checkpoint', {})
+    ckpt_dir = model_checkpoint_info.get('ckpt_dir', '')
 
-        mae = tf.keras.metrics.mean_absolute_error(y_true, y_pred)
-        logs['val_mae'] = mae
+    ckpts_info = model_checkpoint_info.get('ckpts', [])
+    for ckpt_info in ckpts_info:
+        monitor = ckpt_info.get('monitor', '')
+        mode = ckpt_info.get('mode', '')
+        save_best_only = ckpt_info.get('save_best_only')
+        save_weights_only = ckpt_info.get('save_weights_only')
 
-        plcc_tf = np.round(plcc(y_pred, y_true), 3)
-        logs['val_plcc_tf'] = plcc_tf
+        path = os.path.join(ckpt_dir, monitor)
+        if not os.path.exists(path):
+            os.makedirs(path, exist_ok=True)
+
+        model_checkpoint_callback = ModelCheckpoint(os.path.join(str(path), 'best_model_{epoch:02d}.h5'),
+                                                    monitor=monitor,
+                                                    mode=mode,
+                                                    save_best_only=save_best_only,
+                                                    save_weights_only=save_weights_only)
+
+        early_stopping_callback = EarlyStopping(monitor=monitor,
+                                                mode=mode,
+                                                patience=20)
+
+        yield model_checkpoint_callback
+        yield early_stopping_callback

@@ -1,6 +1,5 @@
 import os
 
-import keras.losses
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -38,17 +37,6 @@ class PredictorEvaluator:
 
         return file_name, file_path
 
-    def __get_loss(self):
-        loss = self.evaluate_info.get('loss', {})
-        name = loss.get('name')
-
-        match name:
-            case 'huber':
-                delta = loss.get('delta')
-                return keras.losses.Huber(delta=delta)
-            case 'mse':
-                return keras.losses.MeanSquaredError()
-
     def __get_dataset(self, dataframe, target_size):
         dataset = flow_test_set_from_dataframe(dataframe,
                                                self.root_directory + "/" + self.test_directory,
@@ -81,8 +69,7 @@ class PredictorEvaluator:
     def evaluate_model(self):
         # Compile model
         self.model.load_weights(self.weights_path)
-        loss_fn = self.__get_loss()
-        self.model.compile(loss=loss_fn)
+        self.model.compile()
 
         # Get path to the file which contains the predicted and true scores
         # for every image in the dataset marked for evaluation in evaluate_config
@@ -99,7 +86,8 @@ class PredictorEvaluator:
                 y_true = dataframe['true_MOS']
                 y_pred = dataframe['pred_MOS']
 
-                evaluate_metrics(y_pred, y_true)
+                PLCC, SRCC, MAE, RMSE = evaluate_metrics(y_pred, y_true)
+                print("PLCC, SRCC, MAE, RMSE: ", PLCC, SRCC, MAE, RMSE)
                 return
 
         # Predict scores for every image existing in dataset
@@ -115,7 +103,8 @@ class PredictorEvaluator:
             'pred_MOS': y_pred
         }).to_csv(file_path, index=False)
 
-        evaluate_metrics(y_pred, y_true)
+        PLCC, SRCC, MAE, RMSE = evaluate_metrics(y_pred, y_true)
+        print("PLCC, SRCC, MAE, RMSE: ", PLCC, SRCC, MAE, RMSE)
 
     def evaluate_method(self, path, method='brisque'):
         df = pd.read_csv(self.test_lb)
@@ -126,7 +115,9 @@ class PredictorEvaluator:
 
         mos_scores = merged_df['MOS'].values
         method_scores = merged_df[method].values
-        evaluate_metrics(method_scores, mos_scores)
+
+        PLCC, SRCC, MAE, RMSE = evaluate_metrics(method_scores, mos_scores)
+        print("PLCC, SRCC, MAE, RMSE: ", PLCC, SRCC, MAE, RMSE)
 
     def __get_scores(self):
         file_name, file_path = self.__get_eval_file()

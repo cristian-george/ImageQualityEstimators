@@ -14,7 +14,7 @@ class ConfigParser:
         self.evaluate_config_data = load_json('model_config/evaluate_config.json')
 
     def save_train_config(self):
-        ckpt_dir = self.train_config_data.get('callbacks', {}).get('best_checkpoint', {}).get('ckpt_dir', '')
+        ckpt_dir = self.train_config_data.get('callbacks', {}).get('model_checkpoint', {}).get('ckpt_dir', '')
 
         if ckpt_dir:
             if not os.path.exists(ckpt_dir):

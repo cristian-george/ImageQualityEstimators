@@ -1,13 +1,11 @@
-import os
-
 import keras.losses
 import pandas as pd
-from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
-from keras.optimizers.schedules.learning_rate_schedule import ExponentialDecay
+from keras.optimizers.schedules import ExponentialDecay
 
 from model.model_class import ImageQualityPredictor
-from util.callbacks import ValidationCallback
+from util.callbacks import get_tensorboard_callback, get_model_checkpoint_callbacks
 from util.dataset_funcs import flow_train_set_from_dataframe, flow_validation_set_from_dataframe
+from util.validation_callback import ValidationCallback
 
 
 class PredictorTrainer:
@@ -65,34 +63,16 @@ class PredictorTrainer:
 
     def __callbacks(self):
         callbacks_info = self.train_info.get('callbacks', {})
-        tensorboard_info = callbacks_info.get('tensorboard_checkpoint', {})
-        log_dir = tensorboard_info.get('log_dir', '')
-        histogram_freq = tensorboard_info.get('histogram_freq')
 
-        tensorboard_callback = TensorBoard(log_dir=log_dir,
-                                           histogram_freq=histogram_freq)
+        # TensorBoard callback
+        tensorboard_callback = get_tensorboard_callback(callbacks_info)
+        callbacks = [tensorboard_callback]
 
-        best_model_checkpoint = callbacks_info.get('best_checkpoint', {})
-        ckpt_dir = best_model_checkpoint.get('ckpt_dir', '')
-        if not os.path.exists(ckpt_dir):
-            os.makedirs(ckpt_dir)
+        # ModelCheckpoint callbacks
+        model_checkpoint_callbacks = get_model_checkpoint_callbacks(callbacks_info)
+        callbacks.extend(model_checkpoint_callbacks)
 
-        monitor = best_model_checkpoint.get('monitor', '')
-        mode = best_model_checkpoint.get('mode', '')
-        save_best_only = best_model_checkpoint.get('save_best_only')
-        save_weights_only = best_model_checkpoint.get('save_weights_only')
-
-        best_model_callback = ModelCheckpoint(os.path.join(ckpt_dir, 'best_model.h5'),
-                                              monitor=monitor,
-                                              mode=mode,
-                                              save_best_only=save_best_only,
-                                              save_weights_only=save_weights_only)
-
-        early_stopping_callback = EarlyStopping(monitor=monitor,
-                                                mode=mode,
-                                                patience=20)
-
-        return [tensorboard_callback, best_model_callback, early_stopping_callback]
+        return callbacks
 
     def __get_train_dataset(self, dataframe, target_size):
         return flow_train_set_from_dataframe(
@@ -127,12 +107,12 @@ class PredictorTrainer:
         val_dataset = self.__get_val_dataset(val_df, target_size)
 
         # Compile model
-        loss_fn = self.__get_loss()
+        loss = self.__get_loss()
         learning_rate = self.__get_learning_rate(
             steps_per_epoch=len(train_dataset) // self.batch_size)
 
         self.model.compile(
-            loss=loss_fn,
+            loss=loss,
             learning_rate=learning_rate)
 
         callbacks = self.__callbacks()
@@ -142,7 +122,7 @@ class PredictorTrainer:
         if self.crop_image:
             validation_callback = ValidationCallback(
                 data=val_dataset,
-                loss_fn=loss_fn,
+                loss=loss,
                 target_size=target_size)
 
             # Insert the validation callback at the beginning,

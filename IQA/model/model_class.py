@@ -4,10 +4,10 @@ from keras.layers import Dense, Dropout, GlobalAveragePooling2D, BatchNormalizat
 from keras.models import Model
 from keras.optimizers import Adam
 
-from util.metrics import plcc_tf
+from util.metrics_tf import plcc, srcc, rmse
 
 
-class ImageQualityPredictor(object):
+class ImageQualityPredictor:
     def __init__(self, model_info):
         self.model_info = model_info
 
@@ -60,10 +60,10 @@ class ImageQualityPredictor(object):
     def load_weights(self, weights_path):
         self.model.load_weights(weights_path)
 
-    def compile(self, loss, learning_rate=0.001):
+    def compile(self, loss=None, learning_rate=0.001):
         self.model.compile(optimizer=Adam(learning_rate=learning_rate),
                            loss=loss,
-                           metrics=['mae', plcc_tf])
+                           metrics=[plcc, srcc, 'mae', rmse])
 
     def fit(self, data, epochs, initial_epoch, validation_data, callbacks):
         return self.model.fit(data,
