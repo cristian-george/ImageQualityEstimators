@@ -7,7 +7,7 @@
   "augment": true,
   "crop_image": true,
   "batch_size": 16,
-  "epoch_size": 5,
+  "epoch_size": 50,
   "continue_train": {
     "from_epoch": 0,
     "from_weights": ""
@@ -21,11 +21,11 @@
   },
   "callbacks": {
     "tensorboard": {
-      "log_dir": "data/logs/resnet50_KonIQ-10K_224x224_bsz16_MSE/04",
+      "log_dir": "data/logs/resnet50_KonIQ-10K_224x224_bsz16_MSE/01",
       "histogram_freq": 1
     },
     "model_checkpoint": {
-      "ckpt_dir": "data/models/resnet50_KonIQ-10K_224x224_bsz16_MSE/04",
+      "ckpt_dir": "data/models/resnet50_KonIQ-10K_224x224_bsz16_MSE/01",
       "ckpts": [
         {
           "monitor": "val_loss",

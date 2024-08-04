@@ -6,13 +6,13 @@ import tensorflow as tf
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
-from model.image_quality_predictor import ImageQualityPredictor
-from util.metrics import evaluate_metrics
+from model.predictor import Predictor
 from util.flow_datasets_tf import flow_test_set_from_dataframe
+from util.metrics import evaluate_metrics
 
 
 class PredictorEvaluator:
-    def __init__(self, evaluate_info, model: ImageQualityPredictor):
+    def __init__(self, evaluate_info, model: Predictor):
         self.evaluate_info = evaluate_info
         self.model = model
 
@@ -27,22 +27,24 @@ class PredictorEvaluator:
         self.crop_image = self.evaluate_info.get('crop_image')
         self.batch_size = self.evaluate_info.get('batch_size')
 
-    def __get_eval_file(self):
+    def __get_eval_file_name(self):
         dataset = self.root_directory.split("/")[-2]
-        weights_dir = "/".join(self.weights_path.split("/")[:-1])
         model_name = self.weights_path.split("/")[-1].split(".")[0]
 
         file_name = f'eval_{model_name}_{dataset}_{self.test_directory}.csv'
-        file_path = os.path.join(weights_dir, file_name)
+        return file_name
 
-        return file_name, file_path
+    def __get_eval_file_path(self, file_name):
+        weights_dir = "/".join(self.weights_path.split("/")[:-1])
+        file_path = os.path.join(weights_dir, file_name)
+        return file_path
 
     def __get_dataset(self, dataframe, target_size):
-        dataset = flow_test_set_from_dataframe(dataframe,
-                                               self.root_directory + "/" + self.test_directory,
-                                               batch_size=self.batch_size,
-                                               crop_size=target_size)
-        return dataset
+        return flow_test_set_from_dataframe(
+            dataframe,
+            self.root_directory + "/" + self.test_directory,
+            batch_size=self.batch_size,
+            crop_size=target_size)
 
     def predict_scores(self, dataframe):
         target_size = self.model.input_shape if self.crop_image else None
@@ -73,7 +75,8 @@ class PredictorEvaluator:
 
         # Get path to the file which contains the predicted and true scores
         # for every image in the dataset marked for evaluation in evaluate_config
-        file_name, file_path = self.__get_eval_file()
+        file_name = self.__get_eval_file_name()
+        file_path = self.__get_eval_file_path(file_name)
 
         # Choose whether to override the existing file with new predicted values
         if os.path.isfile(file_path):
@@ -107,20 +110,23 @@ class PredictorEvaluator:
         print("PLCC, SRCC, MAE, RMSE: ", PLCC, SRCC, MAE, RMSE)
 
     def evaluate_method(self, path, method='brisque'):
-        df = pd.read_csv(self.test_lb)
+        test_df = pd.read_csv(self.test_lb)
         method_df = pd.read_csv(path)
 
-        merged_df = pd.merge(df, method_df, on='image_name', how='inner')
-        # merged_df = merged_df.sample(frac=1, random_state=42).reset_index(drop=True)
+        dataframe = pd.merge(test_df,
+                             method_df,
+                             on='image_name',
+                             how='inner')
 
-        mos_scores = merged_df['MOS'].values
-        method_scores = merged_df[method].values
+        scores = dataframe['MOS'].values
+        method_scores = dataframe[method].values
 
-        PLCC, SRCC, MAE, RMSE = evaluate_metrics(method_scores, mos_scores)
+        PLCC, SRCC, MAE, RMSE = evaluate_metrics(method_scores, scores)
         print("PLCC, SRCC, MAE, RMSE: ", PLCC, SRCC, MAE, RMSE)
 
     def __get_scores(self):
-        file_name, file_path = self.__get_eval_file()
+        file_name = self.__get_eval_file_name()
+        file_path = self.__get_eval_file_path(file_name)
 
         if not os.path.isfile(file_path):
             raise FileNotFoundError(f"Evaluation file {file_name} not found.")

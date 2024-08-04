@@ -2,7 +2,7 @@ import keras.losses
 import pandas as pd
 from keras.optimizers.schedules.learning_rate_schedule import ExponentialDecay
 
-from model.image_quality_predictor import ImageQualityPredictor
+from model.predictor import Predictor
 from util.callbacks.model_checkpoint_callbacks import get_model_checkpoint_callbacks
 from util.callbacks.tensorboard_callback import get_tensorboard_callback
 from util.callbacks.validation_callback import ValidationCallback
@@ -10,7 +10,7 @@ from util.flow_datasets_tf import flow_train_set_from_dataframe, flow_validation
 
 
 class PredictorTrainer:
-    def __init__(self, train_info, model: ImageQualityPredictor):
+    def __init__(self, train_info, model: Predictor):
         self.train_info = train_info
         self.model = model
 
@@ -90,7 +90,7 @@ class PredictorTrainer:
             self.batch_size,
             crop_size=target_size)
 
-    def fit_model(self):
+    def train_model(self):
         # Continue training the model using loaded weights
         # and the specified epoch only if both are provided
         initial_epoch = self.continue_train.get('from_epoch')
