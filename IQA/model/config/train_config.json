@@ -13,8 +13,12 @@
     "from_weights": ""
   },
   "lr": {
-    "name": "constant",
-    "value": 1e-4
+    "name": "step_decay",
+    "value": {
+      "initial_lr": 1e-4,
+      "factor": 1e-5,
+      "decay_step": 10
+    }
   },
   "loss": {
     "name": "mse"

@@ -1,5 +1,5 @@
 {
-  "name": "resnet50",
+  "backbone": "resnet50",
   "freeze": true,
   "input_shape": [
     224,

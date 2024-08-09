@@ -6,13 +6,13 @@ from util.metrics_tf import plcc, srcc, mae, rmse
 
 class Predictor:
     def __init__(self, model_info):
-        name = model_info.get('name', '')
+        backbone = model_info.get('backbone', '')
         freeze = model_info.get('freeze')
         dense = model_info.get('dense', [])
         dropout = model_info.get('dropout', [])
 
         self.input_shape = tuple(model_info.get('input_shape', []))
-        self.model = ImageQualityPredictor(name=name,
+        self.model = ImageQualityPredictor(backbone=backbone,
                                            freeze=freeze,
                                            input_shape=(self.input_shape[0], self.input_shape[1], 3),
                                            dense=dense,

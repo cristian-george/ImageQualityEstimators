@@ -2,9 +2,9 @@ from keras import Model
 from keras.applications import ResNet50, VGG16
 
 
-class FeatureExtractor(Model):
+class BackboneNet(Model):
     def __init__(self, name='resnet50', input_shape=(224, 224, 3), freeze=True):
-        super(FeatureExtractor, self).__init__()
+        super(BackboneNet, self).__init__()
 
         if name == 'resnet50':
             backbone = ResNet50(weights='imagenet',
@@ -15,7 +15,7 @@ class FeatureExtractor(Model):
                              include_top=False,
                              input_shape=input_shape)
         else:
-            raise ValueError('Invalid base model')
+            raise ValueError('Invalid backbone model')
 
         self.model = Model(inputs=backbone.input,
                            outputs=backbone.layers[-2].output)

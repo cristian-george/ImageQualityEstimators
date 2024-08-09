@@ -5,7 +5,7 @@ import shutil
 
 dataset = "LIVE2_LIVEitW"
 
-dataset_dir = f"../../data/datasets/{dataset}"
+dataset_dir = f"../data/datasets/{dataset}"
 label_file_path = f"{dataset_dir}/{dataset}_labels.csv"
 image_dir = f"{dataset_dir}/images"
 

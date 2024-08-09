@@ -1,11 +1,12 @@
 import keras.losses
 import pandas as pd
-from keras.optimizers.schedules.learning_rate_schedule import ExponentialDecay
 
 from model.predictor import Predictor
 from util.callbacks.model_checkpoint_callbacks import get_model_checkpoint_callbacks
 from util.callbacks.tensorboard_callback import get_tensorboard_callback
 from util.callbacks.validation_callback import ValidationCallback
+from util.schedulers.exponential_decay import get_exponential_decay
+from util.schedulers.step_decay import get_step_decay
 from util.flow_datasets_tf import flow_train_set_from_dataframe, flow_validation_set_from_dataframe
 
 
@@ -40,16 +41,14 @@ class PredictorTrainer:
                 return lr.get('value')
 
             case "exponential_decay":
-                exponential_decay = lr.get('value', {})
-                initial_learning_rate = exponential_decay.get('initial_learning_rate')
-                final_learning_rate = exponential_decay.get('final_learning_rate')
-                learning_rate_decay_factor = (final_learning_rate / initial_learning_rate) ** (1 / self.epoch_size)
-                staircase = exponential_decay.get('staircase')
+                scheduler = get_exponential_decay(lr, steps_per_epoch, self.epoch_size)
+                return scheduler
 
-                return ExponentialDecay(initial_learning_rate=initial_learning_rate,
-                                        decay_steps=steps_per_epoch,
-                                        decay_rate=learning_rate_decay_factor,
-                                        staircase=staircase)
+            case "step_decay":
+                initial_epoch = self.continue_train.get('from_epoch')
+
+                scheduler = get_step_decay(lr, initial_epoch, steps_per_epoch, self.epoch_size)
+                return scheduler
 
     def __get_loss(self):
         loss = self.train_info.get('loss', {})
@@ -109,8 +108,7 @@ class PredictorTrainer:
 
         # Compile model
         loss = self.__get_loss()
-        learning_rate = self.__get_learning_rate(
-            steps_per_epoch=len(train_dataset) // self.batch_size)
+        learning_rate = self.__get_learning_rate(steps_per_epoch=len(train_dataset))
 
         self.model.compile(
             loss=loss,

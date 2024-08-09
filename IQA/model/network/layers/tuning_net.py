@@ -1,4 +1,21 @@
-from keras.layers import Layer, Dense, BatchNormalization, Dropout
+from keras import Model, Sequential
+from keras.layers import Layer, GlobalAveragePooling2D, Dense, BatchNormalization, Dropout
+
+
+class TuningNet(Model):
+    def __init__(self, dense, dropout):
+        super(TuningNet, self).__init__()
+
+        self.model = Sequential()
+        self.model.add(GlobalAveragePooling2D())
+
+        for units, dropout_rate in zip(dense, dropout):
+            self.model.add(DenseBlock(units, activation='relu', dropout_rate=dropout_rate))
+
+        self.model.add(Dense(dense[-1], activation='linear', kernel_initializer='he_normal'))
+
+    def call(self, inputs, training=None, mask=None):
+        return self.model(inputs, training=training)
 
 
 class DenseBlock(Layer):
