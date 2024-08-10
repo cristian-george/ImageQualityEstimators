@@ -28,6 +28,7 @@ def flow_train_set_from_dataframe(dataframe, dir_path, batch_size, crop_size=Non
     dataset = tf.data.Dataset.from_tensor_slices((image_paths, scores))
     dataset = dataset.map(lambda x, y: (load_and_preprocess_input(x), y),
                           num_parallel_calls=tf.data.AUTOTUNE)
+    dataset = dataset.cache('data/cached_files/train.cache')
 
     if crop_size is not None:
         dataset = dataset.map(lambda x, y: (crop_input(x, crop_size), y),
@@ -61,6 +62,7 @@ def flow_validation_set_from_dataframe(dataframe, dir_path, batch_size, crop_siz
                               reshuffle_each_iteration=True)
 
     dataset = dataset.batch(batch_size)
+    dataset = dataset.cache('data/cached_files/validation.cache')
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
     return dataset
 
@@ -78,5 +80,6 @@ def flow_test_set_from_dataframe(dataframe, dir_path, batch_size, crop_size=None
                               num_parallel_calls=tf.data.AUTOTUNE)
 
     dataset = dataset.batch(batch_size)
+    dataset = dataset.cache('data/cached_files/test.cache')
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
     return dataset
