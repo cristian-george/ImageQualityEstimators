@@ -45,9 +45,7 @@ class PredictorTrainer:
                 return scheduler
 
             case "step_decay":
-                initial_epoch = self.continue_train.get('from_epoch')
-
-                scheduler = get_step_decay(lr, initial_epoch, steps_per_epoch, self.epoch_size)
+                scheduler = get_step_decay(lr, steps_per_epoch, self.epoch_size)
                 return scheduler
 
     def __get_loss(self):

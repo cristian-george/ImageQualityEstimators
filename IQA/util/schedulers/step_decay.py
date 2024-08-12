@@ -1,7 +1,7 @@
-from keras.optimizers.schedules.learning_rate_schedule import PiecewiseConstantDecay
+from keras.optimizers.schedules import PiecewiseConstantDecay
 
 
-def get_step_decay(scheduler_info, initial_epoch, steps_per_epoch, num_epochs):
+def get_step_decay(scheduler_info, steps_per_epoch, num_epochs):
     step_decay = scheduler_info.get('value', {})
     initial_learning_rate = step_decay.get('initial_lr')
     decrease_factor = step_decay.get('factor')
@@ -9,7 +9,7 @@ def get_step_decay(scheduler_info, initial_epoch, steps_per_epoch, num_epochs):
 
     num_steps = num_epochs // epoch_per_decay_step
 
-    boundaries = [(initial_epoch + i * epoch_per_decay_step) * steps_per_epoch
+    boundaries = [i * epoch_per_decay_step * steps_per_epoch
                   for i in range(1, num_steps + 1)]
 
     values = [initial_learning_rate - i * decrease_factor
