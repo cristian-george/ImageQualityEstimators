@@ -1,4 +1,4 @@
-from keras.optimizers.schedules import PiecewiseConstantDecay
+from keras.optimizers.schedules.learning_rate_schedule import PiecewiseConstantDecay
 
 
 def get_step_decay(scheduler_info, steps_per_epoch, num_epochs):

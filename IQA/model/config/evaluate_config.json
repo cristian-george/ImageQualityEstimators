@@ -3,6 +3,5 @@
   "test_directory": "test",
   "test_lb": "test_labels.csv",
   "weights_path": "data/models/resnet50_KonIQ-10K_224x224_bsz16_MSE/01/best_model1.h5",
-  "crop_image": true,
   "batch_size": 16
 }

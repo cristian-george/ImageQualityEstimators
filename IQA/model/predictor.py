@@ -8,13 +8,17 @@ from util.metrics_tf import plcc, srcc, mae, rmse
 
 class Predictor:
     def __init__(self, model_info):
-        self.backbone_name = model_info.get('backbone', '')
-        self.freeze = model_info.get('freeze')
-        self.input_shape = tuple(model_info.get('input_shape', []))
-        self.dense = model_info.get('dense', [])
-        self.dropout = model_info.get('dropout', [])
+        self.model_info = model_info
 
-        self.model = self.build_model()
+        self.__init_model_info()
+        self.__build_model()
+
+    def __init_model_info(self):
+        self.backbone_name = self.model_info.get('backbone', '')
+        self.freeze = self.model_info.get('freeze')
+        self.input_shape = tuple(self.model_info.get('input_shape', []))
+        self.dense = self.model_info.get('dense', [])
+        self.dropout = self.model_info.get('dropout', [])
 
     def __get_backbone_net(self):
         if self.backbone_name == 'resnet50':
@@ -47,16 +51,16 @@ class Predictor:
                      activation='linear',
                      kernel_initializer='he_normal')(x)
 
-    def build_model(self):
+    def __build_model(self):
         # Backbone net
         backbone_input, backbone_output = self.__get_backbone_net()
 
         # Tuning net
         tuning_output = self.__get_tuning_net(backbone_output)
 
-        return Model(name='image_quality_predictor',
-                     inputs=backbone_input,
-                     outputs=tuning_output)
+        self.model = Model(name='image_quality_predictor',
+                           inputs=backbone_input,
+                           outputs=tuning_output)
 
     def summary(self):
         self.model.summary(show_trainable=True)
@@ -69,11 +73,11 @@ class Predictor:
                            loss=loss,
                            metrics=[plcc, srcc, mae, rmse])
 
-    def fit(self, data, epochs, initial_epoch, validation_data, callbacks):
+    def fit(self, data, epochs, initial_epoch, callbacks, validation_data=None):
         return self.model.fit(data,
+                              validation_data=validation_data,
                               epochs=epochs,
                               initial_epoch=initial_epoch,
-                              validation_data=validation_data,
                               callbacks=callbacks)
 
     def predict(self, data, batch_size):

@@ -5,6 +5,7 @@ import numpy as np
 from model.config.config_parser import ConfigParser
 from model.predictor import Predictor
 from model.predictor_evaluator import PredictorEvaluator
+from model.predictor_plotter import PredictorPlotter
 from model.predictor_trainer import PredictorTrainer
 from util.gpu_tf import check_gpu_support, limit_gpu_memory, increase_cpu_num_threads
 
@@ -34,27 +35,30 @@ if __name__ == "__main__":
             break
 
         config_parser = ConfigParser()
-
         predictor = Predictor(config_parser.get_model_info())
-        trainer = PredictorTrainer(config_parser.get_train_info(), predictor)
-        evaluator = PredictorEvaluator(config_parser.get_evaluate_info(), predictor)
 
         match option:
             case 1:
-                config_parser.save_train_config()
+                trainer = PredictorTrainer(config_parser.get_train_info(), predictor)
                 trainer.train_model()
             case 2:
+                evaluator = PredictorEvaluator(config_parser.get_evaluate_info(), predictor)
                 evaluator.evaluate_model()
             case 3:
                 predictor.summary()
             case 4:
-                evaluator.plot_score_distribution()
+                plotter = PredictorPlotter(config_parser.get_evaluate_info())
+                plotter.plot_score_distribution()
             case 5:
-                evaluator.plot_prediction()
+                plotter = PredictorPlotter(config_parser.get_evaluate_info())
+                plotter.plot_prediction()
             case 6:
-                evaluator.plot_errors(lambda x, y: x - y, 'Difference Error')
+                plotter = PredictorPlotter(config_parser.get_evaluate_info())
+                plotter.plot_errors(lambda x, y: x - y, 'Difference Error')
             case 7:
-                evaluator.plot_errors(lambda x, y: np.abs(x - y), 'Absolute Error')
+                plotter = PredictorPlotter(config_parser.get_evaluate_info())
+                plotter.plot_errors(lambda x, y: np.abs(x - y), 'Absolute Error')
             # case 8:
+            #     evaluator = PredictorEvaluator(config_parser.get_evaluate_info(), predictor)
             #     evaluator.evaluate_method('data/datasets/LIVE2/LIVE2_matlab_brisque.csv',
             #                               method='brisque')
