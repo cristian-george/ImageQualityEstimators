@@ -3,32 +3,34 @@ from keras.applications import ResNet50, VGG16
 from keras.layers import GlobalAveragePooling2D, Dense, BatchNormalization, Dropout
 from keras.optimizers import Adam
 
+from model.config_parser.model_config_parser import ModelConfigParser
 from util.metrics_tf import plcc, srcc, mae, rmse
 
 
 class Predictor:
-    def __init__(self, model_info):
-        self.model_info = model_info
+    def __init__(self):
+        self.config_parser = ModelConfigParser()
+        self.model_info = self.config_parser.parse()
 
         self.__init_model_info()
         self.__build_model()
 
     def __init_model_info(self):
-        self.backbone_name = self.model_info.get('backbone', '')
-        self.freeze = self.model_info.get('freeze')
-        self.input_shape = tuple(self.model_info.get('input_shape', []))
-        self.dense = self.model_info.get('dense', [])
-        self.dropout = self.model_info.get('dropout', [])
+        self.backbone = self.model_info['backbone']
+        self.freeze = self.model_info['freeze']
+        self.input_shape = self.model_info['input_shape']
+        self.dense = self.model_info['dense']
+        self.dropout = self.model_info['dropout']
 
     def __get_backbone_net(self):
-        if self.backbone_name == 'resnet50':
+        if self.backbone == 'resnet50':
             backbone_net = ResNet50(weights='imagenet',
                                     include_top=False,
-                                    input_shape=(self.input_shape[0], self.input_shape[1], 3))
-        elif self.backbone_name == 'vgg16':
+                                    input_shape=self.input_shape)
+        elif self.backbone == 'vgg16':
             backbone_net = VGG16(weights='imagenet',
                                  include_top=False,
-                                 input_shape=(self.input_shape[0], self.input_shape[1], 3))
+                                 input_shape=self.input_shape)
         else:
             raise ValueError('Invalid backbone model')
 

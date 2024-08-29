@@ -4,6 +4,7 @@ import os
 import keras.losses
 import pandas as pd
 
+from model.config_parser.train_config_parser import TrainConfigParser
 from model.predictor import Predictor
 from util.callbacks.model_checkpoint_callbacks import get_model_checkpoint_callbacks
 from util.callbacks.tensorboard_callback import get_tensorboard_callback
@@ -14,26 +15,28 @@ from util.schedulers.step_decay import get_step_decay
 
 
 class PredictorTrainer:
-    def __init__(self, train_info, predictor: Predictor):
-        self.train_info = train_info
+    def __init__(self, predictor: Predictor):
         self.predictor = predictor
+
+        self.config_parser = TrainConfigParser()
+        self.train_info = self.config_parser.parse()
 
         self.__init_train_info()
 
     def __init_train_info(self):
-        self.data_directory = self.train_info.get('data_directory', '')
-        self.train_directory = self.data_directory + self.train_info.get('train_directory', '')
-        self.val_directory = self.data_directory + self.train_info.get('val_directory', '')
-        self.train_lb = self.data_directory + self.train_info.get('train_lb', '')
-        self.val_lb = self.data_directory + self.train_info.get('val_lb', '')
+        self.data_directory = self.train_info['data_directory']
+        self.train_directory = self.train_info['train_directory']
+        self.val_directory = self.train_info['val_directory']
+        self.train_lb = self.train_info['train_lb']
+        self.val_lb = self.train_info['val_lb']
 
-        self.augment = self.train_info.get('augment')
+        self.augment = self.train_info['augment']
 
-        self.batch_size = self.train_info.get('batch_size')
-        self.epoch_size = self.train_info.get('epoch_size')
+        self.batch_size = self.train_info['batch_size']
+        self.epoch_size = self.train_info['epoch_size']
 
     def __save_train_config(self):
-        callbacks_info = self.train_info.get('callbacks', {})
+        callbacks_info = self.train_info['callbacks']
         model_checkpoint_info = callbacks_info.get('model_checkpoint', {})
         ckpt_dir = model_checkpoint_info.get('ckpt_dir', '')
 
@@ -41,14 +44,14 @@ class PredictorTrainer:
             os.makedirs(ckpt_dir, exist_ok=True)
 
             config = {
-                "model_config": self.predictor.model_info,
-                "train_config": self.train_info,
+                "model_config": self.predictor.config_parser.get_config_data(),
+                "train_config": self.config_parser.get_config_data(),
             }
             with open(os.path.join(ckpt_dir, 'config_model.json'), 'w') as file:
                 json.dump(config, file, indent=2)
 
     def __train_from_weights(self):
-        continue_train = self.train_info.get('continue_train', {})
+        continue_train = self.train_info['continue_train']
 
         self.weights = continue_train.get('from_weights', '')
         self.initial_epoch = continue_train.get('from_epoch')
@@ -76,8 +79,8 @@ class PredictorTrainer:
             self.predictor.input_shape)
 
     def __get_loss(self):
-        loss = self.train_info.get('loss', {})
-        name = loss.get('name')
+        loss = self.train_info['loss']
+        name = loss.get('name', '')
 
         match name:
             case 'huber':
@@ -87,7 +90,7 @@ class PredictorTrainer:
                 return keras.losses.MeanSquaredError()
 
     def __get_learning_rate(self, steps_per_epoch):
-        lr = self.train_info.get('lr', {})
+        lr = self.train_info['lr']
         self.name = lr.get('name', '')
 
         match self.name:
@@ -103,7 +106,7 @@ class PredictorTrainer:
                 return scheduler
 
     def __get_callbacks(self):
-        callbacks_info = self.train_info.get('callbacks', {})
+        callbacks_info = self.train_info['callbacks']
 
         # TensorBoard callback
         tensorboard_callback = get_tensorboard_callback(callbacks_info)

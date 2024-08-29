@@ -2,8 +2,9 @@
   "backbone": "resnet50",
   "freeze": true,
   "input_shape": [
-    224,
-    224
+    384,
+    512,
+    3
   ],
   "dense": [
     2048,

@@ -4,20 +4,22 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+from model.config_parser.evaluate_config_parser import EvaluateConfigParser
 from model.predictor_evaluator import get_eval_file
 
 
 class PredictorPlotter:
-    def __init__(self, evaluate_info):
-        self.evaluate_info = evaluate_info
+    def __init__(self):
+        self.config_parser = EvaluateConfigParser()
+        self.evaluate_info = self.config_parser.parse()
 
         self.__init_evaluate_info()
 
     def __init_evaluate_info(self):
-        self.root_directory = self.evaluate_info.get('root_directory', '')
-        self.test_directory = self.evaluate_info.get('test_directory', '')
-        self.test_lb = self.root_directory + self.evaluate_info.get('test_lb', '')
-        self.weights_path = self.evaluate_info.get('weights_path', '')
+        self.root_directory = self.evaluate_info['root_directory']
+        self.test_directory = self.evaluate_info['test_directory']
+        self.test_lb = self.evaluate_info['test_lb']
+        self.weights_path = self.evaluate_info['weights_path']
 
     def __get_scores(self):
         file_name, file_path = get_eval_file(self.evaluate_info)

@@ -2,6 +2,6 @@
   "root_directory": "data/datasets/KonIQ-10K/",
   "test_directory": "test",
   "test_lb": "test_labels.csv",
-  "weights_path": "data/models/resnet50_KonIQ-10K_224x224_bsz16_MSE/01/best_model1.h5",
+  "weights_path": "data/models/resnet50_384x512_bsz16_MSE_KonIQ-10K/01/best_model2.h5",
   "batch_size": 16
 }

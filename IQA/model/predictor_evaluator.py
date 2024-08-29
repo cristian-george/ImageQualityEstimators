@@ -5,15 +5,16 @@ import pandas as pd
 import tensorflow as tf
 from tqdm import tqdm
 
+from model.config_parser.evaluate_config_parser import EvaluateConfigParser
 from model.predictor import Predictor
 from util.preprocess_datasets import create_test_set_pipeline
 from util.metrics import evaluate_metrics
 
 
 def get_eval_file(evaluate_info):
-    root_directory = evaluate_info.get('root_directory', '')
-    test_directory = evaluate_info.get('test_directory', '')
-    weights_path = evaluate_info.get('weights_path', '')
+    root_directory = evaluate_info['root_directory']
+    test_directory = evaluate_info['test_directory']
+    weights_path = evaluate_info['weights_path']
 
     dataset_name = root_directory.split("/")[-2]
     model_name = weights_path.split("/")[-1].split(".")[0]
@@ -25,19 +26,21 @@ def get_eval_file(evaluate_info):
 
 
 class PredictorEvaluator:
-    def __init__(self, evaluate_info, predictor: Predictor):
-        self.evaluate_info = evaluate_info
+    def __init__(self, predictor: Predictor):
         self.predictor = predictor
+
+        self.config_parser = EvaluateConfigParser()
+        self.evaluate_info = self.config_parser.parse()
 
         self.__init_evaluate_info()
 
     def __init_evaluate_info(self):
-        self.root_directory = self.evaluate_info.get('root_directory', '')
-        self.test_directory = self.evaluate_info.get('test_directory', '')
-        self.test_lb = self.root_directory + self.evaluate_info.get('test_lb', '')
-        self.weights_path = self.evaluate_info.get('weights_path', '')
+        self.root_directory = self.evaluate_info['root_directory']
+        self.test_directory = self.evaluate_info['test_directory']
+        self.test_lb = self.evaluate_info['test_lb']
 
-        self.batch_size = self.evaluate_info.get('batch_size')
+        self.weights_path = self.evaluate_info['weights_path']
+        self.batch_size = self.evaluate_info['batch_size']
 
     def __get_test_dataset(self):
         test_df = pd.read_csv(self.test_lb)

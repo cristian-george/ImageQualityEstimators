@@ -6,29 +6,25 @@
   "val_lb": "val_labels.csv",
   "augment": true,
   "batch_size": 16,
-  "epoch_size": 40,
+  "epoch_size": 25,
   "continue_train": {
     "from_epoch": 0,
     "from_weights": ""
   },
   "lr": {
-    "name": "exponential_decay",
-    "value": {
-      "initial_lr": 5e-4,
-      "final_lr": 5e-5,
-      "staircase": false
-    }
+    "name": "constant",
+    "value": 5e-4
   },
   "loss": {
     "name": "mse"
   },
   "callbacks": {
     "tensorboard": {
-      "log_dir": "data/logs/resnet50_KonIQ-10K_224x224_bsz16_MSE/01",
+      "log_dir": "data/logs/resnet50_384x512_bsz16_MSE_KonIQ-10K/02",
       "histogram_freq": 1
     },
     "model_checkpoint": {
-      "ckpt_dir": "data/models/resnet50_KonIQ-10K_224x224_bsz16_MSE/01",
+      "ckpt_dir": "data/models/resnet50_384x512_bsz16_MSE_KonIQ-10K/02",
       "ckpts": [
         {
           "monitor": "val_loss",
