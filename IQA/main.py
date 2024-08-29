@@ -2,7 +2,6 @@ import os
 
 import numpy as np
 
-from model.config.config_parser import ConfigParser
 from model.predictor import Predictor
 from model.predictor_evaluator import PredictorEvaluator
 from model.predictor_plotter import PredictorPlotter
@@ -34,29 +33,28 @@ if __name__ == "__main__":
         if option == 0:
             break
 
-        config_parser = ConfigParser()
-        predictor = Predictor(config_parser.get_model_info())
+        predictor = Predictor()
 
         match option:
             case 1:
-                trainer = PredictorTrainer(config_parser.get_train_info(), predictor)
+                trainer = PredictorTrainer(predictor)
                 trainer.train_model()
             case 2:
-                evaluator = PredictorEvaluator(config_parser.get_evaluate_info(), predictor)
+                evaluator = PredictorEvaluator(predictor)
                 evaluator.evaluate_model()
             case 3:
                 predictor.summary()
             case 4:
-                plotter = PredictorPlotter(config_parser.get_evaluate_info())
+                plotter = PredictorPlotter()
                 plotter.plot_score_distribution()
             case 5:
-                plotter = PredictorPlotter(config_parser.get_evaluate_info())
+                plotter = PredictorPlotter()
                 plotter.plot_prediction()
             case 6:
-                plotter = PredictorPlotter(config_parser.get_evaluate_info())
+                plotter = PredictorPlotter()
                 plotter.plot_errors(lambda x, y: x - y, 'Difference Error')
             case 7:
-                plotter = PredictorPlotter(config_parser.get_evaluate_info())
+                plotter = PredictorPlotter()
                 plotter.plot_errors(lambda x, y: np.abs(x - y), 'Absolute Error')
             # case 8:
             #     evaluator = PredictorEvaluator(config_parser.get_evaluate_info(), predictor)
