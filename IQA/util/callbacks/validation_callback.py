@@ -6,11 +6,20 @@ from util.metrics import evaluate_metrics
 
 
 class ValidationCallback(tf.keras.callbacks.Callback):
-    def __init__(self, data, loss, target_size):
+    def __init__(self, data, target_size, loss):
         super().__init__()
         self.data = data
-        self.loss = loss
         self.target_size = target_size
+        self.loss = loss
+
+    def __evaluate_metrics(self, logs, y_true, y_pred):
+        logs['val_loss'] = self.loss(y_true, y_pred)
+
+        PLCC, SRCC, MAE, RMSE = evaluate_metrics(y_true, y_pred)
+        logs['val_plcc'] = PLCC
+        logs['val_srcc'] = SRCC
+        logs['val_mae'] = MAE
+        logs['val_rmse'] = RMSE
 
     def on_epoch_end(self, epoch, logs=None):
         y_pred = []
@@ -28,10 +37,4 @@ class ValidationCallback(tf.keras.callbacks.Callback):
         y_pred = np.concatenate(y_pred, axis=0)
         y_true = np.concatenate(y_true, axis=0)
 
-        logs['val_loss'] = self.loss(y_true, y_pred)
-
-        PLCC, SRCC, MAE, RMSE = evaluate_metrics(y_pred, y_true)
-        logs['val_plcc'] = PLCC
-        logs['val_srcc'] = SRCC
-        logs['val_mae'] = MAE
-        logs['val_rmse'] = RMSE
+        self.__evaluate_metrics(logs, y_true, y_pred)

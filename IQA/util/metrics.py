@@ -24,11 +24,11 @@ def rmse(x, y):
 
 # Evaluation criteria
 # PLCC, SRCC, MAE, RMSE values are reported during testing.
-def evaluate_metrics(y_pred, y_true):
-    PLCC = np.round(plcc(y_pred, y_true), 3)
-    SRCC = np.round(srcc(y_pred, y_true), 3)
+def evaluate_metrics(y_true, y_pred):
+    PLCC = np.round(plcc(y_true, y_pred), 3)
+    SRCC = np.round(srcc(y_true, y_pred), 3)
 
-    MAE = np.round(mae(y_pred, y_true), 3)
-    RMSE = np.round(rmse(y_pred, y_true), 3)
+    MAE = np.round(mae(y_true, y_pred), 3)
+    RMSE = np.round(rmse(y_true, y_pred), 3)
 
     return PLCC, SRCC, MAE, RMSE

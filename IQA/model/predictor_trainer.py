@@ -8,7 +8,7 @@ from model.predictor import Predictor
 from util.callbacks.model_checkpoint_callbacks import get_model_checkpoint_callbacks
 from util.callbacks.tensorboard_callback import get_tensorboard_callback
 from util.callbacks.validation_callback import ValidationCallback
-from util.preprocess_datasets import create_train_set, create_validation_set
+from util.preprocess_datasets import create_train_set_pipeline, create_validation_set_pipeline
 from util.schedulers.exponential_decay import get_exponential_decay
 from util.schedulers.step_decay import get_step_decay
 
@@ -59,7 +59,7 @@ class PredictorTrainer:
     def __get_train_dataset(self):
         train_df = pd.read_csv(self.train_lb)
 
-        return create_train_set(
+        return create_train_set_pipeline(
             train_df,
             self.train_directory,
             self.batch_size,
@@ -69,7 +69,7 @@ class PredictorTrainer:
     def __get_val_dataset(self):
         val_df = pd.read_csv(self.val_lb)
 
-        return create_validation_set(
+        return create_validation_set_pipeline(
             val_df,
             self.val_directory,
             self.batch_size,
@@ -139,18 +139,18 @@ class PredictorTrainer:
         if val_image_shape != self.predictor.input_shape:
             validation_callback = ValidationCallback(
                 val_dataset,
-                loss=loss,
-                target_size=self.predictor.input_shape)
+                target_size=self.predictor.input_shape,
+                loss=loss)
 
             self.predictor.fit(
                 train_dataset,
                 epochs=self.initial_epoch + self.epoch_size,
                 initial_epoch=self.initial_epoch,
                 callbacks=[validation_callback] + self.__get_callbacks())
-
-        self.predictor.fit(
-            train_dataset,
-            validation_data=val_dataset,
-            epochs=self.initial_epoch + self.epoch_size,
-            initial_epoch=self.initial_epoch,
-            callbacks=self.__get_callbacks())
+        else:
+            self.predictor.fit(
+                train_dataset,
+                validation_data=val_dataset,
+                epochs=self.initial_epoch + self.epoch_size,
+                initial_epoch=self.initial_epoch,
+                callbacks=self.__get_callbacks())

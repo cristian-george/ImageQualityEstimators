@@ -20,7 +20,7 @@ def flip_input(image):
     return image
 
 
-def get_image_shape_from_dataset(dataset):
+def get_original_image_shape(dataset):
     image_shapes = set()
 
     for image, label in dataset:
@@ -41,14 +41,14 @@ def flow_from_dataframe(df, dir_path):
     dataset = tf.data.Dataset.from_tensor_slices((image_paths, scores))
     dataset = dataset.map(lambda x, y: (load_and_preprocess_input(x), y),
                           num_parallel_calls=tf.data.AUTOTUNE)
-
     return dataset
 
 
-def create_train_set(df, dir_path, batch_size, target_size, augment=False):
+def create_train_set_pipeline(df, dir_path, batch_size, target_size, augment=False):
     dataset = flow_from_dataframe(df, dir_path)
-    image_shape = get_image_shape_from_dataset(dataset)
     dataset = dataset.cache()
+
+    image_shape = get_original_image_shape(dataset)
 
     if target_size != image_shape:
         dataset = dataset.map(lambda x, y: (crop_input(x, target_size), y),
@@ -58,24 +58,23 @@ def create_train_set(df, dir_path, batch_size, target_size, augment=False):
         dataset = dataset.map(lambda x, y: (flip_input(x), y),
                               num_parallel_calls=tf.data.AUTOTUNE)
 
-    dataset = dataset.shuffle(dataset.cardinality(),
-                              reshuffle_each_iteration=True)
+    dataset = dataset.shuffle(dataset.cardinality())
 
     dataset = dataset.batch(batch_size)
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
     return dataset, image_shape
 
 
-def create_validation_set(df, dir_path, batch_size, target_size):
+def create_validation_set_pipeline(df, dir_path, batch_size, target_size):
     dataset = flow_from_dataframe(df, dir_path)
-    image_shape = get_image_shape_from_dataset(dataset)
+
+    image_shape = get_original_image_shape(dataset)
 
     if target_size != image_shape:
         dataset = dataset.map(lambda x, y: (crop_5patches(x, target_size), y),
                               num_parallel_calls=tf.data.AUTOTUNE)
 
-    dataset = dataset.shuffle(dataset.cardinality(),
-                              reshuffle_each_iteration=True)
+    dataset = dataset.shuffle(dataset.cardinality())
 
     dataset = dataset.batch(batch_size)
     dataset = dataset.cache()
@@ -83,9 +82,10 @@ def create_validation_set(df, dir_path, batch_size, target_size):
     return dataset, image_shape
 
 
-def create_test_set(df, dir_path, batch_size, target_size):
+def create_test_set_pipeline(df, dir_path, batch_size, target_size):
     dataset = flow_from_dataframe(df, dir_path)
-    image_shape = get_image_shape_from_dataset(dataset)
+
+    image_shape = get_original_image_shape(dataset)
 
     if target_size != image_shape:
         dataset = dataset.map(lambda x, y: (crop_5patches(x, target_size), y),

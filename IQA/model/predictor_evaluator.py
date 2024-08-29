@@ -6,7 +6,7 @@ import tensorflow as tf
 from tqdm import tqdm
 
 from model.predictor import Predictor
-from util.preprocess_datasets import create_test_set
+from util.preprocess_datasets import create_test_set_pipeline
 from util.metrics import evaluate_metrics
 
 
@@ -42,7 +42,7 @@ class PredictorEvaluator:
     def __get_test_dataset(self):
         test_df = pd.read_csv(self.test_lb)
 
-        return create_test_set(
+        return create_test_set_pipeline(
             test_df,
             self.root_directory + "/" + self.test_directory,
             self.batch_size,
@@ -77,7 +77,7 @@ class PredictorEvaluator:
         y_true = df['true_MOS']
         y_pred = df['pred_MOS']
 
-        PLCC, SRCC, MAE, RMSE = evaluate_metrics(y_pred, y_true)
+        PLCC, SRCC, MAE, RMSE = evaluate_metrics(y_true, y_pred)
         print("PLCC, SRCC, MAE, RMSE: ", PLCC, SRCC, MAE, RMSE)
 
     def __evaluate_new_file(self, file_path):
@@ -87,7 +87,7 @@ class PredictorEvaluator:
         y_true = test_df['MOS']
         y_pred = self.__predict_scores()
 
-        PLCC, SRCC, MAE, RMSE = evaluate_metrics(y_pred, y_true)
+        PLCC, SRCC, MAE, RMSE = evaluate_metrics(y_true, y_pred)
         print("PLCC, SRCC, MAE, RMSE: ", PLCC, SRCC, MAE, RMSE)
 
         # Store data in the file
@@ -129,8 +129,8 @@ class PredictorEvaluator:
                              on='image_name',
                              how='inner')
 
-        scores = dataframe['MOS'].values
+        real_scores = dataframe['MOS'].values
         method_scores = dataframe[method].values
 
-        PLCC, SRCC, MAE, RMSE = evaluate_metrics(method_scores, scores)
+        PLCC, SRCC, MAE, RMSE = evaluate_metrics(real_scores, method_scores)
         print("PLCC, SRCC, MAE, RMSE: ", PLCC, SRCC, MAE, RMSE)
