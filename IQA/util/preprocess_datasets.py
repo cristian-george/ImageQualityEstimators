@@ -10,7 +10,7 @@ def load_and_preprocess_input(image_path):
     return image
 
 
-def crop_input(image, target_size=(256, 256)):
+def crop_input(image, target_size):
     image = random_crop(image, target_size)
     return image
 
@@ -24,8 +24,7 @@ def get_original_image_shape(dataset):
     image_shapes = set()
 
     for image, label in dataset:
-        image_shape = image.shape[:2]
-        image_shapes.add(image_shape)
+        image_shapes.add(image.shape)
 
     if len(image_shapes) != 1:
         return None

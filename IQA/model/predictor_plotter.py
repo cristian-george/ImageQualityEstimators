@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from model.config_parser.evaluate_config_parser import EvaluateConfigParser
+from config_parser.evaluate_config_parser import EvaluateConfigParser
 from model.predictor_evaluator import get_eval_file
 
 
@@ -22,7 +22,7 @@ class PredictorPlotter:
         self.weights_path = self.evaluate_info['weights_path']
 
     def __get_scores(self):
-        file_name, file_path = get_eval_file(self.evaluate_info)
+        file_name, file_path = get_eval_file(self.test_directory, self.weights_path)
 
         if not os.path.isfile(file_path):
             raise FileNotFoundError(f"Evaluation file {file_name} not found.")
@@ -73,7 +73,7 @@ class PredictorPlotter:
         ax.set_title('Scores distribution')
         ax.set_ylim(0.0, 1.0)
 
-        fig_path = self.root_directory + "/score_distribution.svg"
+        fig_path = self.root_directory + f'/score_distribution_{self.test_directory.split("/")[-1]}.svg'
         fig.savefig(fig_path, format='svg')
 
         plt.show()

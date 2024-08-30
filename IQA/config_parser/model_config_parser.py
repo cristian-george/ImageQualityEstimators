@@ -1,9 +1,9 @@
-from model.config_parser.config_parser import ConfigParser
+from config_parser.config_parser import ConfigParser
 
 
 class ModelConfigParser(ConfigParser):
     def __init__(self):
-        super().__init__('model/config/model_config.json')
+        super().__init__('config/model_config.json')
 
     def parse(self):
         data = dict()

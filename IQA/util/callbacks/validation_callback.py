@@ -27,7 +27,7 @@ class ValidationCallback(tf.keras.callbacks.Callback):
 
         for images, labels in tqdm(self.data, total=len(self.data), desc='Validation'):
             batch_size = tf.shape(images)[0]
-            patches = tf.reshape(images, (-1, self.target_size[0], self.target_size[1], 3))
+            patches = tf.reshape(images, (-1,) + self.target_size)
             patch_predictions = self.model.predict(patches, batch_size=batch_size, verbose=0)
             patch_predictions = tf.reshape(patch_predictions, (batch_size, 5))
             patch_predictions = tf.reduce_mean(patch_predictions, axis=1)

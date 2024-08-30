@@ -5,20 +5,17 @@ import pandas as pd
 import tensorflow as tf
 from tqdm import tqdm
 
-from model.config_parser.evaluate_config_parser import EvaluateConfigParser
+from config_parser.evaluate_config_parser import EvaluateConfigParser
 from model.predictor import Predictor
 from util.preprocess_datasets import create_test_set_pipeline
 from util.metrics import evaluate_metrics
 
 
-def get_eval_file(evaluate_info):
-    root_directory = evaluate_info['root_directory']
-    test_directory = evaluate_info['test_directory']
-    weights_path = evaluate_info['weights_path']
-
-    dataset_name = root_directory.split("/")[-2]
+def get_eval_file(test_directory, weights_path):
+    dataset_name = test_directory.split("/")[-2]
+    test_dir_name = test_directory.split("/")[-1]
     model_name = weights_path.split("/")[-1].split(".")[0]
-    file_name = f'eval_{model_name}_{dataset_name}_{test_directory}.csv'
+    file_name = f'eval_{model_name}_{dataset_name}_{test_dir_name}.csv'
 
     weights_directory = "/".join(weights_path.split("/")[:-1])
     file_path = os.path.join(weights_directory, file_name)
@@ -47,7 +44,7 @@ class PredictorEvaluator:
 
         return create_test_set_pipeline(
             test_df,
-            self.root_directory + "/" + self.test_directory,
+            self.test_directory,
             self.batch_size,
             self.predictor.input_shape)
 
@@ -59,15 +56,16 @@ class PredictorEvaluator:
         # Predict scores
         predicted_scores = []
         for images, _ in tqdm(dataset, total=len(dataset), desc='Predict scores'):
+            batch_size = tf.shape(images)[0]
             if image_shape != target_size:
-                patches = tf.reshape(images, (-1, target_size[0], target_size[1], 3))
-                patch_predictions = self.predictor.predict(patches, batch_size=self.batch_size)
-                patch_predictions = tf.reshape(patch_predictions, (self.batch_size, 5))
+                patches = tf.reshape(images, (-1,) + target_size)
+                patch_predictions = self.predictor.predict(patches, batch_size=batch_size)
+                patch_predictions = tf.reshape(patch_predictions, (batch_size, 5))
                 patch_predictions = tf.reduce_mean(patch_predictions, axis=1)
                 predicted_scores.append(patch_predictions.numpy())
             else:
-                predictions = self.predictor.predict(images, batch_size=self.batch_size)
-                predictions = tf.reshape(predictions, self.batch_size)
+                predictions = self.predictor.predict(images, batch_size=batch_size)
+                predictions = tf.reshape(predictions, batch_size)
                 predicted_scores.append(predictions.numpy())
 
         predicted_scores = np.concatenate(predicted_scores, axis=0)
@@ -107,7 +105,7 @@ class PredictorEvaluator:
 
         # Get path to the file which contains the predicted and true scores
         # for every image in the dataset marked for evaluation in evaluate_config
-        file_name, file_path = get_eval_file(self.evaluate_info)
+        file_name, file_path = get_eval_file(self.test_directory, self.weights_path)
 
         # Choose whether to override the existing file with new predicted values
         if os.path.isfile(file_path):

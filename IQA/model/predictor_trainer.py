@@ -4,7 +4,7 @@ import os
 import keras.losses
 import pandas as pd
 
-from model.config_parser.train_config_parser import TrainConfigParser
+from config_parser.train_config_parser import TrainConfigParser
 from model.predictor import Predictor
 from util.callbacks.model_checkpoint_callbacks import get_model_checkpoint_callbacks
 from util.callbacks.tensorboard_callback import get_tensorboard_callback
@@ -24,14 +24,12 @@ class PredictorTrainer:
         self.__init_train_info()
 
     def __init_train_info(self):
-        self.data_directory = self.train_info['data_directory']
+        self.root_directory = self.train_info['root_directory']
         self.train_directory = self.train_info['train_directory']
         self.val_directory = self.train_info['val_directory']
         self.train_lb = self.train_info['train_lb']
         self.val_lb = self.train_info['val_lb']
-
         self.augment = self.train_info['augment']
-
         self.batch_size = self.train_info['batch_size']
         self.epoch_size = self.train_info['epoch_size']
 

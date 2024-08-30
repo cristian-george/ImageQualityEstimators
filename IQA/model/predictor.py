@@ -3,7 +3,7 @@ from keras.applications import ResNet50, VGG16
 from keras.layers import GlobalAveragePooling2D, Dense, BatchNormalization, Dropout
 from keras.optimizers import Adam
 
-from model.config_parser.model_config_parser import ModelConfigParser
+from config_parser.model_config_parser import ModelConfigParser
 from util.metrics_tf import plcc, srcc, mae, rmse
 
 
