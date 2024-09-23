@@ -7,9 +7,10 @@ class ModelConfigParser(ConfigParser):
 
     def parse(self):
         data = dict()
-        data['backbone'] = self._config_data.get('backbone', '')
-        data['freeze'] = self._config_data.get('freeze')
+        data['net_name'] = self._config_data.get('net_name', '')
         data['input_shape'] = tuple(self._config_data.get('input_shape', []))
+        data['freeze'] = self._config_data.get('freeze')
+        data['pooling'] = self._config_data.get('pooling', '')
         data['dense'] = self._config_data.get('dense', [])
         data['dropout'] = self._config_data.get('dropout', [])
 

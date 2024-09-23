@@ -1,11 +1,12 @@
 {
-  "backbone": "resnet50",
-  "freeze": true,
+  "net_name": "resnet50",
   "input_shape": [
     384,
     512,
     3
   ],
+  "freeze": true,
+  "pooling": "global_avg",
   "dense": [
     2048,
     1024,

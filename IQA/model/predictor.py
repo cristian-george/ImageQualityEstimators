@@ -1,10 +1,28 @@
+import keras
 from keras import Model
 from keras.applications import ResNet50, VGG16
-from keras.layers import GlobalAveragePooling2D, Dense, BatchNormalization, Dropout
+from keras.layers import MaxPooling2D, AveragePooling2D, GlobalAveragePooling2D, Flatten, Dense, BatchNormalization, \
+    Dropout
 from keras.optimizers import Adam
 
 from config_parser.model_config_parser import ModelConfigParser
+from model.vars import network_architecture
 from util.metrics_tf import plcc, srcc, mae, rmse
+
+networks = {
+    'vgg16': VGG16,
+    'resnet50': ResNet50,
+}
+
+output_layer = {
+    'vgg16': -1,
+    'resnet50': -2,
+}
+
+preprocessing_functions = {
+    'vgg16': keras.applications.vgg16.preprocess_input,
+    'resnet50': keras.applications.resnet50.preprocess_input,
+}
 
 
 class Predictor:
@@ -16,32 +34,46 @@ class Predictor:
         self.__build_model()
 
     def __init_model_info(self):
-        self.backbone = self.model_info['backbone']
-        self.freeze = self.model_info['freeze']
+        self.net_name = self.model_info['net_name']
         self.input_shape = self.model_info['input_shape']
+        self.freeze = self.model_info['freeze']
+        self.pooling = self.model_info['pooling']
         self.dense = self.model_info['dense']
         self.dropout = self.model_info['dropout']
 
     def __get_backbone_net(self):
-        if self.backbone == 'resnet50':
-            backbone_net = ResNet50(weights='imagenet',
-                                    include_top=False,
-                                    input_shape=self.input_shape)
-        elif self.backbone == 'vgg16':
-            backbone_net = VGG16(weights='imagenet',
-                                 include_top=False,
-                                 input_shape=self.input_shape)
-        else:
-            raise ValueError('Invalid backbone model')
+        if self.net_name not in list(network_architecture.keys()):
+            raise ValueError('Invalid network architecture')
+
+        network: [VGG16 | ResNet50] = network_architecture[self.net_name]
+        backbone: [VGG16 | ResNet50] = network(
+            weights='imagenet',
+            include_top=False,
+            input_shape=self.input_shape)
 
         if self.freeze:
-            for layer in backbone_net.layers:
+            for layer in backbone.layers:
                 layer.trainable = False
 
-        return backbone_net.input, backbone_net.layers[-2].output
+        if self.net_name == 'resnet50':
+            feats = backbone.layers[-2]
+        else:
+            feats = backbone.layers[-1]
+
+        return backbone.input, feats.output
 
     def __get_tuning_net(self, inputs):
-        x = GlobalAveragePooling2D()(inputs)
+        if self.pooling == 'max':
+            x = MaxPooling2D((2, 2), strides=(2, 2))(inputs)
+            x = Flatten()(x)
+        elif self.pooling == 'avg':
+            x = AveragePooling2D((2, 2), strides=(2, 2))(inputs)
+            x = Flatten()(x)
+        elif self.pooling == 'global_avg':
+            x = GlobalAveragePooling2D()(inputs)
+        else:
+            x = Flatten()(inputs)
+
         for units, rate in zip(self.dense, self.dropout):
             x = Dense(units,
                       activation='relu',

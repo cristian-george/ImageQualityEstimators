@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from config_parser.evaluate_config_parser import EvaluateConfigParser
 from model.predictor import Predictor
-from util.preprocess_datasets import create_test_set_pipeline
+from util.preprocess_datasets import create_dataset_pipeline
 from util.metrics import evaluate_metrics
 
 
@@ -42,11 +42,13 @@ class PredictorEvaluator:
     def __get_test_dataset(self):
         test_df = pd.read_csv(self.test_lb)
 
-        return create_test_set_pipeline(
+        return create_dataset_pipeline(
             test_df,
             self.test_directory,
-            self.batch_size,
-            self.predictor.input_shape)
+            subset='test',
+            net_name=self.predictor.net_name,
+            batch_size=self.batch_size,
+            target_size=self.predictor.input_shape)
 
     def __predict_scores(self):
         # Create dataset
@@ -120,18 +122,3 @@ class PredictorEvaluator:
         # Predict scores for every image existing in dataset
         print(f'Evaluate metrics for {file_name}...')
         self.__evaluate_new_file(file_path)
-
-    def evaluate_method(self, path, method='brisque'):
-        test_df = pd.read_csv(self.test_lb)
-        method_df = pd.read_csv(path)
-
-        dataframe = pd.merge(test_df,
-                             method_df,
-                             on='image_name',
-                             how='inner')
-
-        real_scores = dataframe['MOS'].values
-        method_scores = dataframe[method].values
-
-        PLCC, SRCC, MAE, RMSE = evaluate_metrics(real_scores, method_scores)
-        print("PLCC, SRCC, MAE, RMSE: ", PLCC, SRCC, MAE, RMSE)
