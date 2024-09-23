@@ -34,28 +34,50 @@ class PredictorPlotter:
         return y_true, y_pred
 
     def plot_prediction(self):
-        try:
-            y_true, y_pred = self.__get_scores()
-            plt.scatter(y_true, y_pred, s=10, alpha=0.5)
-            plt.xlabel('True Scores')
-            plt.ylabel('Predicted Scores')
-            plt.show()
-        except FileNotFoundError as e:
-            print(e)
+        y_true, y_pred = self.__get_scores()
+
+        fig, ax = plt.subplots()
+
+        ax.scatter(y_true, y_pred, s=10, alpha=0.5)
+        ax.set_xlabel('True score', fontsize=13)
+        ax.set_ylabel('Predicted score', fontsize=13)
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
+        plt.subplots_adjust(top=0.975, right=0.975)
+
+        fig_path = self.root_directory + (f'/prediction'
+                                          f'_{self.test_directory.split("/")[-2]}'  # dataset name
+                                          f'_{self.test_directory.split("/")[-1]}'  # test directory
+                                          f'.svg')
+        fig.savefig(fig_path,
+                    format='svg')
+
+        plt.show()
+        plt.close(fig)
 
     def plot_errors(self, function, title):
-        try:
-            y_true, y_pred = self.__get_scores()
+        y_true, y_pred = self.__get_scores()
+        errors = function(y_true, y_pred)
 
-            errors = function(y_pred, y_true)
+        fig, ax = plt.subplots()
 
-            plt.scatter(y_true, errors, s=10, alpha=0.5)
-            plt.xlabel('True Scores')
-            plt.ylabel('Error')
-            plt.title(title)
-            plt.show()
-        except FileNotFoundError as e:
-            print(e)
+        ax.scatter(y_true, errors, s=10, alpha=0.5)
+        ax.set_xlabel('True score', fontsize=13)
+        ax.set_ylabel(title + ' error', fontsize=13)
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
+        plt.subplots_adjust(top=0.975, right=0.975)
+
+        fig_path = self.root_directory + (f'/{title}_error'
+                                          f'_{self.test_directory.split("/")[-2]}'  # dataset name
+                                          f'_{self.test_directory.split("/")[-1]}'  # test directory
+                                          f'.svg')
+
+        fig.savefig(fig_path,
+                    format='svg')
+
+        plt.show()
+        plt.close(fig)
 
     def plot_score_distribution(self):
         df = pd.read_csv(self.test_lb)
@@ -63,18 +85,26 @@ class PredictorPlotter:
 
         bins = list(np.arange(1.0, 5.05, 0.05))
         counts, bin_edges = np.histogram(scores, bins=bins)
-        counts = counts / counts.max() * 0.9
+        counts = counts / counts.sum()
 
         fig, ax = plt.subplots()
         ax.hist(bin_edges[:-1], bin_edges, weights=counts)
 
-        ax.set_xlabel('Score')
-        ax.set_ylabel('Frequency')
-        ax.set_title('Scores distribution')
-        ax.set_ylim(0.0, 1.0)
+        ax.set_xlabel('Quality score', fontsize=13)
+        ax.set_ylabel('Relative frequency', fontsize=13)
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
+        plt.subplots_adjust(top=0.975, right=0.975)
 
-        fig_path = self.root_directory + f'/score_distribution_{self.test_directory.split("/")[-1]}.svg'
-        fig.savefig(fig_path, format='svg')
+        y_min, y_max = ax.get_ylim()
+        ax.set_ylim(0.0, y_max + 0.01)
+
+        fig_path = self.root_directory + (f'/score_distribution'
+                                          f'_{self.test_directory.split("/")[-2]}'  # dataset name
+                                          f'_{self.test_directory.split("/")[-1]}'  # test directory
+                                          f'.svg')
+        fig.savefig(fig_path,
+                    format='svg')
 
         plt.show()
         plt.close(fig)

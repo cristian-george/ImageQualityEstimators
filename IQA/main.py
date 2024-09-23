@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     use_gpu = check_gpu_support()
     if use_gpu:
-        limit_gpu_memory(memory_limit=3.5 * 1024)
+        limit_gpu_memory(memory_limit=10 * 1024)
     else:
         increase_cpu_num_threads(num_threads=os.cpu_count())
 
@@ -26,7 +26,6 @@ if __name__ == "__main__":
         print("5 to plot predicted and true scores")
         print("6 to plot difference error between predicted and true scores")
         print("7 to plot absolute error between predicted and true scores")
-        # print("8 to evaluate BRISQUE")
         print("0 to exit")
 
         option = int(input("Enter option: "))
@@ -52,11 +51,7 @@ if __name__ == "__main__":
                 plotter.plot_prediction()
             case 6:
                 plotter = PredictorPlotter()
-                plotter.plot_errors(lambda x, y: x - y, 'Difference Error')
+                plotter.plot_errors(lambda x, y: x - y, 'Difference')
             case 7:
                 plotter = PredictorPlotter()
-                plotter.plot_errors(lambda x, y: np.abs(x - y), 'Absolute Error')
-            # case 8:
-            #     evaluator = PredictorEvaluator(config_parser.get_evaluate_info(), predictor)
-            #     evaluator.evaluate_method('data/datasets/LIVE2/LIVE2_matlab_brisque.csv',
-            #                               method='brisque')
+                plotter.plot_errors(lambda x, y: np.abs(x - y), 'Absolute')
