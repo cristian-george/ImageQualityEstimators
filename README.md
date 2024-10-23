@@ -1,2 +1,2 @@
-# IQA
-IQA: The Challenge of Acccurate Image Quality Assessment
+# Image Quality Estimators
+The Challenge of Acccurate Image Quality Assessment
