@@ -1,4 +1,3 @@
-import keras
 from keras import Model
 from keras.applications import ResNet50, VGG16
 from keras.layers import MaxPooling2D, AveragePooling2D, GlobalAveragePooling2D, Flatten, Dense, BatchNormalization, \
@@ -8,21 +7,6 @@ from keras.optimizers import Adam
 from config_parser.model_config_parser import ModelConfigParser
 from model.vars import network_architecture
 from util.metrics_tf import plcc, srcc, mae, rmse
-
-networks = {
-    'vgg16': VGG16,
-    'resnet50': ResNet50,
-}
-
-output_layer = {
-    'vgg16': -1,
-    'resnet50': -2,
-}
-
-preprocessing_functions = {
-    'vgg16': keras.applications.vgg16.preprocess_input,
-    'resnet50': keras.applications.resnet50.preprocess_input,
-}
 
 
 class Predictor:
@@ -78,7 +62,10 @@ class Predictor:
             x = Dense(units,
                       activation='relu',
                       kernel_initializer='he_normal')(x)
-            x = BatchNormalization()(x)
+
+            if self.net_name == 'resnet50':
+                x = BatchNormalization()(x)
+
             x = Dropout(rate)(x)
 
         return Dense(self.dense[-1],

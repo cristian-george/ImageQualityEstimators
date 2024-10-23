@@ -185,10 +185,8 @@ fabric.properties
 .idea
 
 # Datasets
+Datasets
+
+# Trained models and logs
 IQA/data
 
-# Trained models
-IQA/trained_models
-
-# Tensorboard logs
-IQA/logs
