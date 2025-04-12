@@ -1,2 +1,2 @@
 # Image Quality Estimators
-The Challenge of Acccurate Image Quality Assessment
+Comparing Blind Image Quality Metrics for Reliable Image Assessment
