@@ -2,8 +2,6 @@ import tensorflow as tf
 from keras import backend as K
 
 
-# Metrics used for tensorflow ops
-
 def plcc(y_true, y_pred):
     centered_true = y_true - K.mean(y_true)
     centered_pred = y_pred - K.mean(y_pred)

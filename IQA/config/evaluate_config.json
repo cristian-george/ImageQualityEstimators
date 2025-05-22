@@ -1,7 +1,14 @@
 {
-  "root_directory": "data/datasets/KonIQ-10K/",
-  "test_directory": "test",
-  "test_lb": "test_labels.csv",
-  "weights_path": "data/models/resnet50_384x512_bsz16_MSE_KonIQ-10K/00/best_model3.h5",
-  "batch_size": 16
+  "weights_path": "data/trained_on_KonIQ-10K/models/efficientnet_v2_s_384x512_bsz8_MSE_KonIQ-10K/01/best_model2.h5",
+  "batch_size": 8,
+  "test_dirs": [
+    "../Datasets/KonIQ-10K/test",
+    "../Datasets/LIVE2/images",
+    "../Datasets/LIVEitW/images"
+  ],
+  "test_lbs": [
+    "../Datasets/KonIQ-10K/test_labels.csv",
+    "../Datasets/LIVE2/LIVE2_labels.csv",
+    "../Datasets/LIVEitW/LIVEitW_labels.csv"
+  ]
 }

@@ -1,30 +1,32 @@
 {
-  "root_directory": "data/datasets/LIVE2+KonIQ-10K/",
-  "train_directory": "train",
+  "root_directory": "../Datasets/KonIQ-10K/",
+  "train_directory": "test",
   "val_directory": "val",
-  "train_lb": "train_labels.csv",
+  "train_lb": "test_labels.csv",
   "val_lb": "val_labels.csv",
   "augment": true,
-  "batch_size": 16,
-  "epoch_size": 40,
+  "batch_size": 8,
+  "epoch_size": 30,
   "continue_train": {
-    "from_epoch": 0,
-    "from_weights": ""
+    "from_epoch": 40,
+    "from_weights": "data/models/efficientnet_v2_s_384x512_bsz8_MSE_KonIQ-10K/01/best_model1.h5"
   },
   "lr": {
-    "name": "constant",
-    "value": 1e-4
+    "name": "exponential_decay",
+    "value": {
+      "initial_lr": 5e-5,
+      "final_lr": 5e-6,
+      "staircase": false
+    }
   },
-  "loss": {
-    "name": "mse"
-  },
+  "loss": "mse",
   "callbacks": {
     "tensorboard": {
-      "log_dir": "data/logs/resnet50_384x512_bsz16_MSE_LIVE2+KonIQ-10K/00",
+      "log_dir": "data/trained_on_KonIQ-10K/logs/efficientnet_v2_s_384x512_bsz8_MSE_KonIQ-10K/01",
       "histogram_freq": 1
     },
     "model_checkpoint": {
-      "ckpt_dir": "data/models/resnet50_384x512_bsz16_MSE_LIVE2+KonIQ-10K/00",
+      "ckpt_dir": "data/trained_on_KonIQ-10K/models/efficientnet_v2_s_384x512_bsz8_MSE_KonIQ-10K/01",
       "ckpts": [
         {
           "monitor": "val_loss",
@@ -36,7 +38,11 @@
           "monitor": "val_plcc",
           "mode": "max",
           "save_best_only": true,
-          "save_weights_only": true
+          "save_weights_only": true,
+          "early_stopping": {
+            "patience": 5,
+            "min_delta": 5e-4
+          }
         }
       ]
     }

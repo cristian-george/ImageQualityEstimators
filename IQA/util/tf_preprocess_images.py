@@ -4,6 +4,7 @@ import tensorflow as tf
 def load_and_decode_image(image_path):
     image = tf.io.read_file(image_path)
     image = tf.image.decode_image(image, channels=3)
+    image = tf.cast(image, tf.float32)
     return image
 
 

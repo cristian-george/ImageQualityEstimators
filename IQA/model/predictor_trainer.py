@@ -6,12 +6,12 @@ import pandas as pd
 
 from config_parser.train_config_parser import TrainConfigParser
 from model.predictor import Predictor
-from util.callbacks.model_checkpoint_callbacks import get_model_checkpoint_callbacks
-from util.callbacks.tensorboard_callback import get_tensorboard_callback
-from util.callbacks.validation_callback import ValidationCallback
-from util.preprocess_datasets import create_dataset_pipeline
-from util.schedulers.exponential_decay import get_exponential_decay
-from util.schedulers.step_decay import get_step_decay
+from model.callbacks.model_checkpoint_callbacks import get_model_checkpoint_callbacks
+from model.callbacks.tensorboard_callback import get_tensorboard_callback
+from model.callbacks.validation_callback import ValidationCallback
+from util.tf_dataset_pipeline import create_dataset_pipeline
+from model.schedulers.exponential_decay import get_exponential_decay
+from model.schedulers.step_decay import get_step_decay
 
 
 class PredictorTrainer:
@@ -24,7 +24,6 @@ class PredictorTrainer:
         self.__init_train_info()
 
     def __init_train_info(self):
-        self.root_directory = self.train_info['root_directory']
         self.train_directory = self.train_info['train_directory']
         self.val_directory = self.train_info['val_directory']
         self.train_lb = self.train_info['train_lb']
@@ -42,7 +41,7 @@ class PredictorTrainer:
             os.makedirs(ckpt_dir, exist_ok=True)
 
             config = {
-                "model_config": self.predictor.config_parser.get_config_data(),
+                "model_config": self.predictor.config.get_config_data(),
                 "train_config": self.config_parser.get_config_data(),
             }
             with open(os.path.join(ckpt_dir, 'config_model.json'), 'w') as file:
@@ -52,7 +51,7 @@ class PredictorTrainer:
         continue_train = self.train_info['continue_train']
 
         self.weights = continue_train.get('from_weights', '')
-        self.initial_epoch = continue_train.get('from_epoch')
+        self.initial_epoch = continue_train.get('from_epoch', 0)
 
         if self.weights and self.initial_epoch >= 0:
             self.predictor.load_weights(self.weights)
@@ -82,24 +81,22 @@ class PredictorTrainer:
 
     def __get_loss(self):
         loss = self.train_info['loss']
-        name = loss.get('name', '')
 
-        match name:
-            case 'huber':
-                delta = loss.get('delta')
-                return keras.losses.Huber(delta=delta)
+        match loss:
             case 'mse':
                 return keras.losses.MeanSquaredError()
             case 'mae':
                 return keras.losses.MeanAbsoluteError()
 
+        return None
+
     def __get_learning_rate(self, steps_per_epoch):
         lr = self.train_info['lr']
-        self.name = lr.get('name', '')
+        name = lr.get('name', '')
 
-        match self.name:
+        match name:
             case "constant":
-                return lr.get('value')
+                return lr.get('value', 0)
 
             case "exponential_decay":
                 scheduler = get_exponential_decay(lr, steps_per_epoch, self.epoch_size)
@@ -108,6 +105,8 @@ class PredictorTrainer:
             case "step_decay":
                 scheduler = get_step_decay(lr, steps_per_epoch, self.epoch_size)
                 return scheduler
+
+        return None
 
     def __get_callbacks(self):
         callbacks_info = self.train_info['callbacks']
@@ -142,22 +141,15 @@ class PredictorTrainer:
             loss=loss,
             learning_rate=learning_rate)
 
-        # Train model
-        if val_image_shape != self.predictor.input_shape:
-            validation_callback = ValidationCallback(
-                val_dataset,
-                target_size=self.predictor.input_shape,
-                loss=loss)
+        # Callbacks
+        validation_callback = ValidationCallback(
+            val_dataset,
+            image_shape=val_image_shape,
+            input_shape=self.predictor.input_shape)
 
-            self.predictor.fit(
-                train_dataset,
-                epochs=self.initial_epoch + self.epoch_size,
-                initial_epoch=self.initial_epoch,
-                callbacks=[validation_callback] + self.__get_callbacks())
-        else:
-            self.predictor.fit(
-                train_dataset,
-                validation_data=val_dataset,
-                epochs=self.initial_epoch + self.epoch_size,
-                initial_epoch=self.initial_epoch,
-                callbacks=self.__get_callbacks())
+        # Train model
+        self.predictor.fit(
+            train_dataset,
+            epochs=self.initial_epoch + self.epoch_size,
+            initial_epoch=self.initial_epoch,
+            callbacks=[validation_callback] + self.__get_callbacks())

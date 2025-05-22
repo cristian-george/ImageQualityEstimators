@@ -3,16 +3,16 @@ import os
 from sklearn.model_selection import train_test_split
 import shutil
 
-dataset = "LIVE2_LIVEitW"
+dataset = "KonIQ-10K"
 
-dataset_dir = f"../data/datasets/{dataset}"
+dataset_dir = f"../Datasets/{dataset}"
 label_file_path = f"{dataset_dir}/{dataset}_labels.csv"
 image_dir = f"{dataset_dir}/images"
 
 labels = pd.read_csv(label_file_path)
 
-validation_size = 960
-test_size = 1006
+validation_size = 1008
+test_size = 1360
 
 train_data, test_data = train_test_split(labels,
                                          test_size=(test_size + validation_size) / len(labels),

@@ -1,11 +1,12 @@
 {
-  "net_name": "resnet50",
+  "net_name": "efficientnet_v2_s",
   "input_shape": [
     384,
     512,
     3
   ],
-  "freeze": true,
+  "freeze_backbone": true,
+  "freeze_head_bn": false,
   "pooling": "global_avg",
   "dense": [
     2048,

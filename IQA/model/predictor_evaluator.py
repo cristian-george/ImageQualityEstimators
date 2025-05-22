@@ -7,17 +7,17 @@ from tqdm import tqdm
 
 from config_parser.evaluate_config_parser import EvaluateConfigParser
 from model.predictor import Predictor
-from util.preprocess_datasets import create_dataset_pipeline
-from util.metrics import evaluate_metrics
+from util.metrics import compute_metrics, compute_mean_std
+from util.tf_dataset_pipeline import create_dataset_pipeline
 
 
-def get_eval_file(test_directory, weights_path):
-    dataset_name = test_directory.split("/")[-2]
-    test_dir_name = test_directory.split("/")[-1]
-    model_name = weights_path.split("/")[-1].split(".")[0]
+def get_file(test_directory, weights_path):
+    model_name = os.path.splitext(os.path.basename(weights_path))[0]
+    dataset_name = os.path.basename(os.path.dirname(test_directory))
+    test_dir_name = os.path.basename(test_directory)
+
     file_name = f'eval_{model_name}_{dataset_name}_{test_dir_name}.csv'
-
-    weights_directory = "/".join(weights_path.split("/")[:-1])
+    weights_directory = os.path.dirname(weights_path)
     file_path = os.path.join(weights_directory, file_name)
     return file_name, file_path
 
@@ -25,100 +25,95 @@ def get_eval_file(test_directory, weights_path):
 class PredictorEvaluator:
     def __init__(self, predictor: Predictor):
         self.predictor = predictor
-
         self.config_parser = EvaluateConfigParser()
         self.evaluate_info = self.config_parser.parse()
 
-        self.__init_evaluate_info()
-
-    def __init_evaluate_info(self):
-        self.root_directory = self.evaluate_info['root_directory']
-        self.test_directory = self.evaluate_info['test_directory']
-        self.test_lb = self.evaluate_info['test_lb']
-
-        self.weights_path = self.evaluate_info['weights_path']
-        self.batch_size = self.evaluate_info['batch_size']
-
-    def __get_test_dataset(self):
-        test_df = pd.read_csv(self.test_lb)
-
+    def __get_test_dataset(self, test_df, test_directory):
         return create_dataset_pipeline(
             test_df,
-            self.test_directory,
+            test_directory,
             subset='test',
             net_name=self.predictor.net_name,
-            batch_size=self.batch_size,
-            target_size=self.predictor.input_shape)
+            batch_size=self.evaluate_info['batch_size'],
+            target_size=self.predictor.input_shape
+        )
 
-    def __predict_scores(self):
-        # Create dataset
-        dataset, image_shape = self.__get_test_dataset()
-        target_size = self.predictor.input_shape
-
-        # Predict scores
-        predicted_scores = []
-        for images, _ in tqdm(dataset, total=len(dataset), desc='Predict scores'):
+    def __predict_scores(self, dataset, image_shape):
+        input_shape = self.predictor.input_shape
+        scores = []
+        for batch in tqdm(dataset, total=len(dataset), desc='Predict scores'):
+            images = batch[0] if isinstance(batch, tuple) else batch
             batch_size = tf.shape(images)[0]
-            if image_shape != target_size:
-                patches = tf.reshape(images, (-1,) + target_size)
+
+            if image_shape == input_shape:
+                predictions = tf.squeeze(self.predictor.predict(images, batch_size=batch_size), axis=1)
+            else:
+                patches = tf.reshape(images, (-1,) + input_shape)
                 patch_predictions = self.predictor.predict(patches, batch_size=batch_size)
                 patch_predictions = tf.reshape(patch_predictions, (batch_size, 5))
-                patch_predictions = tf.reduce_mean(patch_predictions, axis=1)
-                predicted_scores.append(patch_predictions.numpy())
-            else:
-                predictions = self.predictor.predict(images, batch_size=batch_size)
-                predictions = tf.reshape(predictions, batch_size)
-                predicted_scores.append(predictions.numpy())
+                predictions = tf.reduce_mean(patch_predictions, axis=1)
 
-        predicted_scores = np.concatenate(predicted_scores, axis=0)
-        return predicted_scores
+            scores.append(predictions.numpy())
 
-    @staticmethod
-    def __evaluate_existing_file(file_path):
-        df = pd.read_csv(file_path)
-
-        y_true = df['true_MOS']
-        y_pred = df['pred_MOS']
-
-        PLCC, SRCC, MAE, RMSE = evaluate_metrics(y_true, y_pred)
-        print("PLCC, SRCC, MAE, RMSE: ", PLCC, SRCC, MAE, RMSE)
-
-    def __evaluate_new_file(self, file_path):
-        test_df = pd.read_csv(self.test_lb)
-
-        image_names = test_df['image_name']
-        y_true = test_df['MOS']
-        y_pred = self.__predict_scores()
-
-        PLCC, SRCC, MAE, RMSE = evaluate_metrics(y_true, y_pred)
-        print("PLCC, SRCC, MAE, RMSE: ", PLCC, SRCC, MAE, RMSE)
-
-        # Store data in the file
-        pd.DataFrame({
-            'image_name': image_names,
-            'true_MOS': y_true,
-            'pred_MOS': y_pred
-        }).to_csv(file_path, index=False)
+        return np.concatenate(scores, axis=0)
 
     def evaluate_model(self):
-        # Load weights and compile model
-        self.predictor.load_weights(self.weights_path)
+        weights_path = self.evaluate_info['weights_path']
+        test_dirs = self.evaluate_info['test_dirs']
+        test_lbs = self.evaluate_info['test_lbs']
+
+        self.predictor.load_weights(weights_path)
         self.predictor.compile()
 
-        # Get path to the file which contains the predicted and true scores
-        # for every image in the dataset marked for evaluation in evaluate_config
-        file_name, file_path = get_eval_file(self.test_directory, self.weights_path)
+        for idx, test_dir in enumerate(test_dirs):
+            test_lb = test_lbs[idx] if test_lbs else None
+            file_name, file_path = get_file(test_dir, weights_path)
+            print(f"--- Evaluating {test_dir} on {self.predictor.net_name} ---")
 
-        # Choose whether to override the existing file with new predicted values
-        if os.path.isfile(file_path):
-            override = input(f'File {file_name} already exists. '
-                             f'Do you want to override it? (y/n): ')
+            if os.path.isfile(file_path):
+                override = input(f"File {file_name} already exists. Override? (y/n): ").strip().lower()
+                if override != 'y':
+                    print("File not overridden. Loading existing results.")
+                    df = pd.read_csv(file_path)
+                    if 'true_MOS' not in df.columns:
+                        print("'true_MOS' not found. Only stats will be printed.")
+                        compute_mean_std(df['pred_MOS'])
+                    else:
+                        compute_metrics(df['true_MOS'], df['pred_MOS'])
+                    continue
 
-            if override.lower() != 'y':
-                print('File not overridden. Evaluate metrics...')
-                self.__evaluate_existing_file(file_path)
-                return
+            print(f"Evaluating and saving results to {file_name}...")
+            self.__evaluate_and_save(test_dir, test_lb, file_path)
 
-        # Predict scores for every image existing in dataset
-        print(f'Evaluate metrics for {file_name}...')
-        self.__evaluate_new_file(file_path)
+    @staticmethod
+    def __load_test_dataframe(test_directory, test_lb=None):
+        if test_lb:
+            return pd.read_csv(test_lb)
+
+        def list_images(directory):
+            return sorted([
+                f for f in os.listdir(directory)
+                if f.lower().endswith(('.bmp', '.jpg', '.jpeg', '.png'))
+            ])
+
+        image_names = list_images(test_directory)
+        if not image_names:
+            raise ValueError(f"No images found in {test_directory}")
+        return pd.DataFrame({'image_name': image_names})
+
+    def __evaluate_and_save(self, test_directory, test_lb, file_path):
+        test_df = self.__load_test_dataframe(test_directory, test_lb)
+        dataset, image_shape = self.__get_test_dataset(test_df, test_directory)
+        y_pred = self.__predict_scores(dataset, image_shape)
+        image_names = test_df['image_name']
+
+        if 'MOS' in test_df.columns:
+            y_true = test_df['MOS']
+            compute_metrics(y_true, y_pred)
+            df = pd.DataFrame({'image_name': image_names, 'true_MOS': y_true, 'pred_MOS': y_pred})
+        else:
+            print("'MOS' not found. Only predicted stats will be printed.")
+            compute_mean_std(y_pred)
+            df = pd.DataFrame({'image_name': image_names, 'pred_MOS': y_pred})
+
+        df.to_csv(file_path, index=False)

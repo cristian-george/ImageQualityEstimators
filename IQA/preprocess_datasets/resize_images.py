@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 def resize(image, target_size, interpolation=cv2.INTER_NEAREST):
     """
-    Resizes image to ensure minimum height or width is th or tw respectively.
+    Resizes image to ensure the minimum height or width is th or tw respectively.
     Note: th, tw = target_size
     """
     h, w = image.shape[:2]
